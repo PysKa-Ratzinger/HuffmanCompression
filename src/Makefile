@@ -1,11 +1,11 @@
-CC=gcc
+CC=g++
 CFLAGS=-W -Wall -Wextra -Werror -Wfatal-errors -g
 LDLIBS=
-OBJECTS=main.o
+OBJECTS=main.o huffman_algo.o
 
 main: $(OBJECTS)
 
-%.o: %.c %.h
+%.o: %.cpp %.hpp
 
 run: main
 	./main
