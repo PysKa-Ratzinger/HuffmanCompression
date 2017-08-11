@@ -2,12 +2,6 @@
 
 #include <stdlib.h>
 
-// ####  #####  #### #
-// #   # #     #     #
-// #   # ###   #     #
-// #   # #     #     #
-// ####  #####  #### ##### #
-
 template <typename T>
 class BinaryHeap{
 private:
@@ -23,12 +17,6 @@ public:
     size_t size();
 };
 
-// ##### #   # ####  #
-//   #   ## ## #   # #
-//   #   # # # ####  #
-//   #   #   # #     #
-// ##### #   # #     ##### #
-
 template <typename T>
 BinaryHeap<T>::BinaryHeap(size_t starting_heap_size){
     // _heap = malloc(starting_heap_size * sizeof(T));
@@ -39,7 +27,10 @@ BinaryHeap<T>::BinaryHeap(size_t starting_heap_size){
 
 template <typename T>
 BinaryHeap<T>::~BinaryHeap<T>(){
-    delete _heap;
+    for(unsigned i=0; i<_num_elems; i++){
+        delete _heap[i];
+    }
+    delete[] _heap;
 }
 
 template <typename T>

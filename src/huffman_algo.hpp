@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdio.h>
 #include <stdlib.h>
 
 #define TOTAL_CHARS 0x100
@@ -17,30 +18,33 @@ struct analysis_info{
 
 class HuffmanNode{
 private:
-    double _weight;
+    unsigned long _weight;
     bool _isLeaf;
 public:
-    HuffmanNode(double weight, bool isLeaf);
-    double weight();
+    HuffmanNode(unsigned long weight, bool isLeaf);
+    virtual ~HuffmanNode() {}
+    unsigned long weight();
     bool operator < (HuffmanNode& node);
-    void print(int depth);
+    void print(unsigned depth);
 };
 
 class HuffmanLeafNode : public HuffmanNode{
 private:
     unsigned char _elem;
 public:
-    HuffmanLeafNode(double weight, unsigned char elem);
-    void print(int depth);
+    HuffmanLeafNode(unsigned long weight, unsigned char elem);
+    ~HuffmanLeafNode() {}
+    void print(unsigned depth);
 };
 
 class HuffmanParentNode : public HuffmanNode{
 private:
-    HuffmanNode& _left;
-    HuffmanNode& _right;
+    HuffmanNode* _left;
+    HuffmanNode* _right;
 public:
-    HuffmanParentNode(HuffmanNode& left, HuffmanNode& right);
-    void print(int depth);
+    HuffmanParentNode(HuffmanNode* left, HuffmanNode* right);
+    ~HuffmanParentNode();
+    void print(unsigned depth);
 };
 
 class HuffmanTree{
@@ -48,8 +52,11 @@ private:
     HuffmanNode *_head;
 public:
     HuffmanTree(HuffmanNode *head);
+    ~HuffmanTree();
     void print();
 };
+
+bool huffmanEncode(FILE* inputFile, FILE* outputFile);
 
 /**
  *  Given a file name, an analysis_info structure is created with the frequency
@@ -64,7 +71,7 @@ public:
  *                         needed from the analysis, or NULL if one could not
  *                         be created.
  */
-struct analysis_info* analyse_file(char* filename);
+struct analysis_info* analyse_file(FILE* inputFile);
 
 /**
  * Given the analysis information of a file, a huffman tree is generated.
