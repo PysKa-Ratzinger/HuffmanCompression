@@ -8,6 +8,17 @@
 #define TRUE 1
 #define FALSE 0
 
+#define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
+#define BYTE_TO_BINARY(byte)  \
+  (byte & 0x80 ? '1' : '0'), \
+  (byte & 0x40 ? '1' : '0'), \
+  (byte & 0x20 ? '1' : '0'), \
+  (byte & 0x10 ? '1' : '0'), \
+  (byte & 0x08 ? '1' : '0'), \
+  (byte & 0x04 ? '1' : '0'), \
+  (byte & 0x02 ? '1' : '0'), \
+  (byte & 0x01 ? '1' : '0')
+
 HuffmanNode::HuffmanNode(unsigned long weight, bool isLeaf)
     : _weight(weight), _isLeaf(isLeaf) {}
 
@@ -49,7 +60,7 @@ void HuffmanNode::print(unsigned depth){
 
 void HuffmanLeafNode::print(unsigned depth){
     for(unsigned i=0; i<depth; i++){
-        printf("  ");
+        printf(" | ");
     }
     printf("\"%d\" - %lu\n", _elem, weight());
 }
@@ -57,7 +68,7 @@ void HuffmanLeafNode::print(unsigned depth){
 void HuffmanParentNode::print(unsigned depth){
     _left->print(depth+1);
     for(unsigned i=0; i<depth; i++){
-        printf("  ");
+        printf(" | ");
     }
     printf("%lu\n", weight());
     _right->print(depth+1);
@@ -65,6 +76,22 @@ void HuffmanParentNode::print(unsigned depth){
 
 void HuffmanTree::print(){
     _head->print(0);
+}
+
+void HuffmanLeafNode::encodeBinary(BitStream *outStream){
+    outStream->writeBit(0);
+    outStream->writeNBits(&_elem, sizeof(_elem)*8);
+    printf(BYTE_TO_BINARY_PATTERN"\n", BYTE_TO_BINARY(_elem));
+}
+
+void HuffmanParentNode::encodeBinary(BitStream *outStream){
+    outStream->writeBit(1);
+    _left->encodeBinary(outStream);
+    _right->encodeBinary(outStream);
+}
+
+void HuffmanTree::encodeBinary(BitStream *outStream){
+    if(_head) _head->encodeBinary(outStream);
 }
 
 bool huffmanEncode(FILE* inputFile, FILE* outputFile){
@@ -77,12 +104,27 @@ bool huffmanEncode(FILE* inputFile, FILE* outputFile){
         fprintf(stderr, "DONE\nCreating Huffman Tree... ");
         HuffmanTree *tree = create_huffman_tree(info);
         if(tree != NULL){
-            fprintf(stderr, "DONE\nCreating output bitstream... ");
+            fprintf(stderr, "DONE\n");
+            fprintf(stderr, "Creating output bitstream... ");
             BitStream* outStream = new BitStream(outputFile);
             if(outStream != NULL){
                 fprintf(stderr, "DONE\n");
-
                 tree->print();
+
+                /* Output file_size and huffman tree */
+                fwrite(&info->total, sizeof(info->total), 1, outputFile);
+                tree->encodeBinary(outStream);
+
+                /* Set input file position to beginning */
+                // fseek(inputFile, 0, SEEK_SET);
+
+                // char input;
+                // size_t bytes_read;
+                // while((bytes_read = fread(&input, 1, 1, inputFile)) > 0){
+                //
+                // }
+
+                outStream->flush();
 
                 result = true;
                 delete outStream;
@@ -113,6 +155,12 @@ struct analysis_info* analyse_file(FILE* inputFile){
                 res->frequency[buffer[i]]++;
             }
         }
+
+        unsigned long total = 0;
+        for(unsigned i=0; i<256; i++){
+            total += res->frequency[i];
+        }
+        res->total = total;
     }
     return res;
 }
@@ -121,11 +169,6 @@ HuffmanTree* create_huffman_tree(struct analysis_info* info){
     BinaryHeap<HuffmanNode>* heap = new BinaryHeap<HuffmanNode>(256);
     if(heap == NULL){
         return NULL;
-    }
-
-    unsigned long total = 0;
-    for(unsigned i=0; i<0x100; i++){
-        total += info->frequency[i];
     }
 
     double sum = 0;

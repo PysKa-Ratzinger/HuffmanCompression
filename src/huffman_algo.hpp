@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "bitstream.hpp"
+
 #define TOTAL_CHARS 0x100
 
 /**  Used to store all the information regarding the frequency of every byte
@@ -14,8 +16,23 @@ struct analysis_info{
      * said byte.
      */
     unsigned long frequency[TOTAL_CHARS];
+
+    /**
+     * The total number of bytes in the file
+     */
+    u_int64_t total;
 };
 
+/**  Represents the encoding of a character
+ */
+struct character_encoding{
+    char* bytes;
+    size_t bitSize;
+};
+
+/**  Abstract base class of a Huffman Tree Node. The two subclasses of this
+ * base class represent the Leaf Node and the Parent Node.
+ */
 class HuffmanNode{
 private:
     unsigned long _weight;
@@ -25,9 +42,13 @@ public:
     virtual ~HuffmanNode() {}
     unsigned long weight();
     bool operator < (HuffmanNode& node);
-    void print(unsigned depth);
+    virtual void print(unsigned depth);
+    virtual void encodeBinary(BitStream* outStream) = 0;
 };
 
+/**  Leaf node from a Huffman tree. Represents a node with no childs,
+ * but a value.
+ */
 class HuffmanLeafNode : public HuffmanNode{
 private:
     unsigned char _elem;
@@ -35,8 +56,12 @@ public:
     HuffmanLeafNode(unsigned long weight, unsigned char elem);
     ~HuffmanLeafNode() {}
     void print(unsigned depth);
+    void encodeBinary(BitStream* outStream);
 };
 
+/**  Parent node from a Huffman tree. Represents a node with no value but
+ * two children.
+ */
 class HuffmanParentNode : public HuffmanNode{
 private:
     HuffmanNode* _left;
@@ -45,8 +70,12 @@ public:
     HuffmanParentNode(HuffmanNode* left, HuffmanNode* right);
     ~HuffmanParentNode();
     void print(unsigned depth);
+    void encodeBinary(BitStream* outStream);
 };
 
+/**  Huffman tree. Contains every information necessary in order to encode and
+ * decode information
+ */
 class HuffmanTree{
 private:
     HuffmanNode *_head;
@@ -54,6 +83,7 @@ public:
     HuffmanTree(HuffmanNode *head);
     ~HuffmanTree();
     void print();
+    void encodeBinary(BitStream* outStream);
 };
 
 bool huffmanEncode(FILE* inputFile, FILE* outputFile);
@@ -64,12 +94,6 @@ bool huffmanEncode(FILE* inputFile, FILE* outputFile);
  * allocation for the analysis information is not possible, the operation fails.
  *  If the operation fails, NULL is returned and @{errno} is left with a value
  * that describes the problem that occurred.
- *
- * @param  filename      The name of the file to be analysed
- * @param  filename_size The size of the name of the file to be analysed
- * @return               A pointer to a structure with all the information
- *                         needed from the analysis, or NULL if one could not
- *                         be created.
  */
 struct analysis_info* analyse_file(FILE* inputFile);
 

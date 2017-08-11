@@ -19,7 +19,6 @@ public:
 
 template <typename T>
 BinaryHeap<T>::BinaryHeap(size_t starting_heap_size){
-    // _heap = malloc(starting_heap_size * sizeof(T));
     _heap = new T*[starting_heap_size];
     _heap_size = starting_heap_size;
     _num_elems = 0;
@@ -68,9 +67,11 @@ T* BinaryHeap<T>::pop(){
         size_t left = pos*2 + 1;
         size_t right = left + 1;
         size_t target;
-        if(right < _num_elems){ // Both children are present
+        if(right < _num_elems){
+            // Both children are present
             target = *_heap[left] < *_heap[right] ? left : right;
-        }else if(left < _num_elems){ // Only left child is present
+        }else if(left < _num_elems){
+            // Only left child is present
             target = left;
         }else{
             break;

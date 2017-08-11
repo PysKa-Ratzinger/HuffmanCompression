@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "huffman_algo.hpp"
+#include "bitstream.hpp"
 
 #define BUFFER_SZ 512
 
@@ -21,6 +22,7 @@ int main(){
     }
 
     fprintf(stderr, "DONE\n");
+
     printf("Name of the output file: ");
     fflush(stdout);
     fgets(buffer, BUFFER_SZ, stdin);
@@ -45,8 +47,8 @@ int main(){
         printf("It seems an error has occurred or something. Sorry :/\n");
     }
 
-    fclose(inputFile);
     fclose(outputFile);
+    fclose(inputFile);
 
     return 0;
 }
