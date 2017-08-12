@@ -2,7 +2,7 @@ CC=g++
 CFLAGS=-W -Wall -Wextra -Werror -Wfatal-errors -g
 CXXFLAGS=-W -Wall -Wextra -Werror -Wfatal-errors -g
 LDLIBS=
-OBJECTS=main.o huffman_algo.o bitstream.o
+OBJECTS=main.o huffman_algo.o bitstream.o character_encoding.o
 
 main: $(OBJECTS)
 

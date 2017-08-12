@@ -9,7 +9,7 @@ private:
     size_t _charBufferSize;
 public:
     BitStream(FILE* file);
-    void writeNBits(unsigned char* buffer, size_t numBits);
+    void writeNBits(const unsigned char* buffer, size_t numBits);
     void writeBit(unsigned char bit);
     void flush();
 };

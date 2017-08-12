@@ -3,7 +3,7 @@
 BitStream::BitStream(FILE* file)
 : _file(file), _charBuffer(0), _charBufferSize(0) {}
 
-void BitStream::writeNBits(unsigned char *buffer, size_t numBits){
+void BitStream::writeNBits(const unsigned char *buffer, size_t numBits){
     if(_charBufferSize == 0){
         fwrite(buffer, numBits/8, 1, _file);
         if(numBits % 8 != 0){

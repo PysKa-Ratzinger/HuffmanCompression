@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "bitstream.hpp"
+#include "character_encoding.hpp"
 
 #define TOTAL_CHARS 0x100
 
@@ -23,13 +24,6 @@ struct analysis_info{
     u_int64_t total;
 };
 
-/**  Represents the encoding of a character
- */
-struct character_encoding{
-    char* bytes;
-    size_t bitSize;
-};
-
 /**  Abstract base class of a Huffman Tree Node. The two subclasses of this
  * base class represent the Leaf Node and the Parent Node.
  */
@@ -40,10 +34,12 @@ private:
 public:
     HuffmanNode(unsigned long weight, bool isLeaf);
     virtual ~HuffmanNode() {}
-    unsigned long weight();
-    bool operator < (HuffmanNode& node);
-    virtual void print(unsigned depth);
-    virtual void encodeBinary(BitStream* outStream) = 0;
+    unsigned long weight() const;
+    bool operator < (const HuffmanNode& node) const;
+    virtual void print(unsigned const depth) const;
+    virtual void encodeBinary(BitStream* outStream) const = 0;
+    virtual void saveEncoding(CharacterEncoding* arr[256],
+                                CharacterEncoding* curr) const = 0;
 };
 
 /**  Leaf node from a Huffman tree. Represents a node with no childs,
@@ -55,8 +51,10 @@ private:
 public:
     HuffmanLeafNode(unsigned long weight, unsigned char elem);
     ~HuffmanLeafNode() {}
-    void print(unsigned depth);
-    void encodeBinary(BitStream* outStream);
+    void print(unsigned const depth) const;
+    void encodeBinary(BitStream* outStream) const;
+    void saveEncoding(CharacterEncoding* arr[256],
+                        CharacterEncoding* curr) const;
 };
 
 /**  Parent node from a Huffman tree. Represents a node with no value but
@@ -69,8 +67,10 @@ private:
 public:
     HuffmanParentNode(HuffmanNode* left, HuffmanNode* right);
     ~HuffmanParentNode();
-    void print(unsigned depth);
-    void encodeBinary(BitStream* outStream);
+    void print(unsigned const depth) const;
+    void encodeBinary(BitStream* outStream) const;
+    void saveEncoding(CharacterEncoding* arr[256],
+                        CharacterEncoding* curr) const;
 };
 
 /**  Huffman tree. Contains every information necessary in order to encode and
@@ -78,12 +78,14 @@ public:
  */
 class HuffmanTree{
 private:
-    HuffmanNode *_head;
+    const HuffmanNode* _head;
+    CharacterEncoding** _encoding;
 public:
-    HuffmanTree(HuffmanNode *head);
+    HuffmanTree(const HuffmanNode* head);
     ~HuffmanTree();
-    void print();
-    void encodeBinary(BitStream* outStream);
+    void print() const;
+    void encodeBinary(BitStream* outStream) const;
+    void encodeByte(BitStream* outStream, unsigned char byte) const;
 };
 
 bool huffmanEncode(FILE* inputFile, FILE* outputFile);
