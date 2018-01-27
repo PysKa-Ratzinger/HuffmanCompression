@@ -5,50 +5,83 @@
 
 #define BUFFER_SZ 512
 
+#define COMPRESS 1
+#define DECOMPRESS 2
+
 int main(){
-    char buffer[BUFFER_SZ];
+	char buffer[BUFFER_SZ];
 
-    printf("Name of the file to be analysed: ");
-    fflush(stdout);
-    fgets(buffer, BUFFER_SZ, stdin);
-    buffer[strlen(buffer)-1] = '\0';
+	printf("Options:\n\n");
+	printf("\t1. Compress file\n");
+	printf("\t2. Decompress file\n");
+	printf("\t0. Exit\n");
+	fgets(buffer, BUFFER_SZ, stdin);
 
-    fprintf(stderr, "Opening input file... ");
-    FILE* inputFile = fopen(buffer, "r");
-    if(inputFile == NULL){
-        fprintf(stderr, "ERROR\n");
-        perror("fopen");
-        exit(EXIT_FAILURE);
-    }
+	int option = 0;
 
-    fprintf(stderr, "DONE\n");
+	switch(buffer[0]){
+		case '0':
+			return 0;
+		case '2':
+			printf("Not yet implemented.\n");
+			return 1;
+		case '1':
+			option = COMPRESS;
+			break;
+		default:
+			return 1;
+	}
 
-    printf("Name of the output file: ");
-    fflush(stdout);
-    fgets(buffer, BUFFER_SZ, stdin);
-    buffer[strlen(buffer)-1] = '\0';
+	printf("Name of the file to be analysed: ");
+	fflush(stdout);
+	fgets(buffer, BUFFER_SZ, stdin);
+	buffer[strlen(buffer)-1] = '\0';
 
-    fprintf(stderr, "Opening output file... ");
-    FILE* outputFile = fopen(buffer, "w+");
-    if(outputFile == NULL){
-        fprintf(stderr, "ERROR\n");
-        perror("fopen");
-        fclose(inputFile);
-        exit(EXIT_FAILURE);
-    }
+	fprintf(stderr, "Opening input file... ");
+	FILE* inputFile = fopen(buffer, "r");
+	if(inputFile == NULL){
+		fprintf(stderr, "ERROR\n");
+		perror("fopen");
+		exit(EXIT_FAILURE);
+	}
 
-    fprintf(stderr, "DONE\n");
+	fprintf(stderr, "DONE\n");
 
-    bool operationResult = huffmanEncode(inputFile, outputFile);
+	printf("Name of the output file: ");
+	fflush(stdout);
+	fgets(buffer, BUFFER_SZ, stdin);
+	buffer[strlen(buffer)-1] = '\0';
 
-    if(operationResult){
-        printf("Huffman enconding complete.\n");
-    }else{
-        printf("It seems an error has occurred or something. Sorry :/\n");
-    }
+	fprintf(stderr, "Opening output file... ");
+	FILE* outputFile = fopen(buffer, "w+");
+	if(outputFile == NULL){
+		fprintf(stderr, "ERROR\n");
+		perror("fopen");
+		fclose(inputFile);
+		exit(EXIT_FAILURE);
+	}
 
-    fclose(outputFile);
-    fclose(inputFile);
+	fprintf(stderr, "DONE\n");
 
-    return 0;
+	bool operationResult;
+	switch(option){
+		case COMPRESS:
+			operationResult = huffmanEncode(inputFile, outputFile);
+			break;
+		case DECOMPRESS:
+			printf("Not yet implemented.\n");
+		default:
+			return 1;
+	}
+	if(operationResult){
+		printf("Huffman enconding complete.\n");
+	}else{
+		printf("It seems an error has occurred or something. Sorry :/\n");
+	}
+
+	fclose(outputFile);
+	fclose(inputFile);
+
+	return 0;
 }
+
