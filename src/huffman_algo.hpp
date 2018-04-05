@@ -89,6 +89,7 @@ class HuffmanTree{
 };
 
 bool huffmanEncode(FILE* inputFile, FILE* outputFile);
+bool huffmanDecode(FILE* inputFile, FILE* outputFile);
 
 /**
  *  Given a file name, an analysis_info structure is created with the frequency
@@ -105,4 +106,9 @@ struct analysis_info* analyse_file(FILE* inputFile);
  * @return      Pointer to a new huffman_tree structure
  */
 HuffmanTree* create_huffman_tree(struct analysis_info *info);
+
+/**
+ * Given an input stream, reads the encoded huffman tree
+ */
+HuffmanTree* read_huffman_tree(BitStream* inStream);
 

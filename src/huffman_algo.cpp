@@ -136,51 +136,82 @@ void HuffmanTree::encodeByte(BitStream *outStream, unsigned char byte) const{
 }
 
 bool huffmanEncode(FILE* inputFile, FILE* outputFile){
-	bool result = false;
-
 	fprintf(stderr, "Started analysis... ");
 	fflush(stdout);
 	struct analysis_info* info = analyse_file(inputFile);
-	if(info != NULL){
-		fprintf(stderr, "DONE\nCreating Huffman Tree... ");
-		HuffmanTree *tree = create_huffman_tree(info);
-		if(tree != NULL){
-			fprintf(stderr, "DONE\n");
-			fprintf(stderr, "Creating output bitstream... ");
-			BitStream* outStream = new BitStream(outputFile);
-			if(outStream != NULL){
-				fprintf(stderr, "DONE\n");
-				tree->print();
-
-				/* Output file_size and huffman tree */
-				fwrite(&info->total, sizeof(info->total), 1, outputFile);
-				tree->encodeBinary(outStream);
-
-				/* Set input file position to beginning */
-				fseek(inputFile, 0, SEEK_SET);
-
-				char input;
-				size_t bytes_read;
-				while((bytes_read = fread(&input, 1, 1, inputFile)) > 0){
-					tree->encodeByte(outStream, input);
-				}
-
-				outStream->flush();
-
-				result = true;
-				delete outStream;
-			}else{
-				fprintf(stderr, "ERROR\n");
-			}
-			delete tree;
-		}else{
-			fprintf(stderr, "ERROR\n");
-		}
-		delete info;
-	}else{
+	if(info == NULL){
 		fprintf(stderr, "ERROR\n");
+		return false;
 	}
-	return result;
+
+	fprintf(stderr, "DONE\nCreating Huffman Tree... ");
+	HuffmanTree *tree = create_huffman_tree(info);
+	if(tree == NULL){
+		fprintf(stderr, "ERROR\n");
+		delete info;
+		return false;
+	}
+
+	fprintf(stderr, "DONE\n");
+	fprintf(stderr, "Creating output bitstream... ");
+	BitStream* outStream = new BitStream(outputFile);
+	if(outStream == NULL){
+		fprintf(stderr, "ERROR\n");
+		delete tree;
+		delete info;
+		return false;
+	}
+
+	fprintf(stderr, "DONE\n");
+	tree->print();
+
+	/* Output file_size and huffman tree */
+	fwrite(&info->total, sizeof(info->total), 1, outputFile);
+	tree->encodeBinary(outStream);
+
+	/* Set input file position to beginning */
+	fseek(inputFile, 0, SEEK_SET);
+
+	char input;
+	size_t bytes_read;
+	while((bytes_read = fread(&input, 1, 1, inputFile)) > 0){
+		tree->encodeByte(outStream, input);
+	}
+
+	outStream->flush();
+
+	delete outStream;
+	delete tree;
+	delete info;
+	return true;
+}
+
+bool huffmanDecode(FILE* inputFile, FILE* outputFile){
+	BitStream* inputStream = new BitStream(inputFile);
+	if (inputStream == NULL) {
+		return false;
+	}
+
+	HuffmanTree* tree = read_huffman_tree(inputStream);
+	if (tree == NULL) {
+		delete inputStream;
+		return false;
+	}
+
+	BitStream* outputStream = new BitStream(outputFile);
+	if (outputStream == NULL) {
+		delete inputStream;
+		delete tree;
+		return false;
+	}
+
+	tree->translate(inputStream, outputStream);
+	outputStream->flush();
+
+	delete outputStream;
+	delete tree;
+	delete inputStream;
+	return true;
 }
 
 struct analysis_info* analyse_file(FILE* inputFile){
@@ -191,7 +222,7 @@ struct analysis_info* analyse_file(FILE* inputFile){
 
 		unsigned char buffer[BUFFER_SZ];
 		size_t bytes_read = 0;
-		while((bytes_read = fread(buffer, 1, BUFFER_SZ, inputFile)) > 0){
+		while((bytes_read=fread(buffer, 1, BUFFER_SZ, inputFile)) > 0){
 			for(unsigned i=0; i<bytes_read; i++){
 				res->frequency[buffer[i]]++;
 			}
@@ -223,12 +254,31 @@ HuffmanTree* create_huffman_tree(struct analysis_info* info){
 	}
 
 	while(heap->size() >= 2){
-		HuffmanNode* parent = new HuffmanParentNode(heap->pop(), heap->pop());
+		HuffmanNode* parent = new HuffmanParentNode(heap->pop(),
+				heap->pop());
 		heap->insert(parent);
 	}
 
 	HuffmanNode* node = heap->pop();
 	delete heap;
 	return new HuffmanTree(node);
+}
+
+HuffmanNode* read_huffman_node(BitStream* inStream) {
+	unsigned char bit = inStream->readBit();
+	if (bit == 0) {
+		unsigned char byte;
+		inStream->readNBits(&byte, 8);
+		return new HuffmanLeafNode(0, byte);
+	} else {
+		HuffmanNode* left = read_huffman_node(inStream);
+		HuffmanNode* right = read_huffman_node(inStream);
+		return new HuffmanParentNode(left, right);
+	}
+}
+
+HuffmanTree* read_huffman_tree(BitStream* inStream) {
+	HuffmanNode* head = read_huffman_node(inStream);
+	return new HuffmanTree(head);
 }
 

@@ -22,12 +22,12 @@ int main(){
 	switch(buffer[0]){
 		case '0':
 			return 0;
-		case '2':
-			printf("Not yet implemented.\n");
-			return 1;
 		case '1':
 			option = COMPRESS;
 			break;
+		case '2':
+			option = DECOMPRESS;
+			return 1;
 		default:
 			return 1;
 	}
@@ -69,14 +69,15 @@ int main(){
 			operationResult = huffmanEncode(inputFile, outputFile);
 			break;
 		case DECOMPRESS:
-			printf("Not yet implemented.\n");
+			operationResult = huffmanDecode(inputFile, outputFile);
+			break;
 		default:
 			return 1;
 	}
 	if(operationResult){
 		printf("Huffman enconding complete.\n");
 	}else{
-		printf("It seems an error has occurred or something. Sorry :/\n");
+		printf("It seems an error has occurred or something.\n");
 	}
 
 	fclose(outputFile);
