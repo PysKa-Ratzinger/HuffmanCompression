@@ -13,17 +13,17 @@ class CharacterEncoding
 {
 public:
 	CharacterEncoding();
-	CharacterEncoding(CharacterEncoding const& original);
+	CharacterEncoding( CharacterEncoding const& original );
 	~CharacterEncoding();
-	size_t getBitSize();
-	void addBit( unsigned char bit );
-	void removeBit();
-	unsigned char getBit( size_t index ) const;
+	size_t GetBitSize();
+	void AddBit( unsigned char bit );
+	void RemoveBit();
+	unsigned char GetBit( size_t index ) const;
 
 private:
-	char* _bytes;
-	size_t _index;
-	size_t _num_bytes;
-	size_t _bitSize;
+	char*     bytes;
+	size_t    index;
+	size_t    numBytes;
+	size_t    bitSize;
 };
 

@@ -28,17 +28,18 @@ structure. The FIRST bit written will be the FIRST bit read.
 class BitStream{
 public:
 	BitStream( FILE* file );
-	void writeNBits( const unsigned char* buffer, size_t numBits );
-	void writeBit( unsigned char bit );
-	unsigned char readBit();
-	void readNBits( unsigned char* buffer, size_t numBits );
-	void flush();
+
+	void          WriteNBits( const unsigned char* buffer, size_t numBits );
+	void          WriteBit( unsigned char bit );
+	unsigned char ReadBit();
+	void          ReadNBits( unsigned char* buffer, size_t numBits );
+	void          Flush();
 
 private:
-	FILE* _file;
-	char _charInBuffer;
-	char _charOutBuffer;
-	size_t _charInBufferSize;
-	size_t _charOutBufferSize;
+	FILE*     file;
+	char      charInBuffer;
+	char      charOutBuffer;
+	size_t    charInBufferSize;
+	size_t    charOutBufferSize;
 };
 

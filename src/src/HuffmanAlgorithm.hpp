@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "bitstream.hpp"
-#include "character_encoding.hpp"
+#include "BitStream.hpp"
+#include "CharacterEncoding.hpp"
 
 #define TOTAL_CHARS 0x100
 
@@ -14,8 +14,8 @@ Used to store all the information regarding the frequency of every byte
 found in the analysed file
 ================================
  */
-struct analysis_info{
-
+struct AnalysisInfo
+{
 	/**
 	 * Array with the frequency of every byte. The index of each frequency
 	 * corresponds to the byte analysed, and the value to the frequency of
@@ -38,19 +38,17 @@ base class represent the Leaf Node and the Parent Node.
 class HuffmanNode
 {
 public:
-	HuffmanNode( unsigned long weight, bool isLeaf );
+	HuffmanNode( unsigned long weight );
 	virtual ~HuffmanNode() {}
-	unsigned long weight() const;
-	bool operator < ( const HuffmanNode& node ) const;
-	virtual void print( unsigned const depth ) const = 0;
-	virtual void encodeBinary( BitStream* outStream ) const = 0;
-	virtual void saveEncoding(
-			CharacterEncoding* arr[256],
-			CharacterEncoding* curr ) const = 0;
+
+	unsigned long Weight() const;
+	bool          operator < ( const HuffmanNode& node ) const;
+	virtual void  Print( unsigned const depth ) const = 0;
+	virtual void  EncodeBinary( BitStream* outStream ) const = 0;
+	virtual void  SaveEncoding( CharacterEncoding* arr[256], CharacterEncoding* curr ) const = 0;
 
 private:
-	unsigned long _weight;
-	bool _isLeaf;
+	unsigned long weight;
 };
 
 /*
@@ -64,14 +62,13 @@ class HuffmanLeafNode : public HuffmanNode
 public:
 	HuffmanLeafNode( unsigned long weight, unsigned char elem );
 	~HuffmanLeafNode() {}
-	void print( unsigned const depth ) const;
-	void encodeBinary( BitStream* outStream ) const;
-	void saveEncoding(
-			CharacterEncoding* arr[256],
-			CharacterEncoding* curr ) const;
+
+	void Print( unsigned const depth ) const;
+	void EncodeBinary( BitStream* outStream ) const;
+	void SaveEncoding( CharacterEncoding* arr[256], CharacterEncoding* curr ) const;
 
 private:
-	unsigned char _elem;
+	unsigned char elem;
 };
 
 /*
@@ -85,14 +82,14 @@ class HuffmanParentNode : public HuffmanNode
 public:
 	HuffmanParentNode( HuffmanNode* left, HuffmanNode* right );
 	~HuffmanParentNode();
-	void print( unsigned const depth ) const;
-	void encodeBinary( BitStream* outStream ) const;
-	void saveEncoding( CharacterEncoding* arr[256],
-			CharacterEncoding* curr ) const;
+
+	void Print( unsigned const depth ) const;
+	void EncodeBinary( BitStream* outStream ) const;
+	void SaveEncoding( CharacterEncoding* arr[256], CharacterEncoding* curr ) const;
 
 private:
-	HuffmanNode* _left;
-	HuffmanNode* _right;
+	HuffmanNode* left;
+	HuffmanNode* right;
 };
 
 /*
@@ -106,36 +103,37 @@ class HuffmanTree
 public:
 	HuffmanTree( const HuffmanNode* head );
 	~HuffmanTree();
-	void print() const;
-	void encodeBinary( BitStream* outStream ) const;
-	void encodeByte( BitStream* outStream, unsigned char byte ) const;
+
+	void Print() const;
+	void EncodeBinary( BitStream* outStream ) const;
+	void EncodeByte( BitStream* outStream, unsigned char byte ) const;
 
 private:
-	const HuffmanNode* _head;
-	CharacterEncoding** _encoding;
+	const HuffmanNode* head;
+	CharacterEncoding** encoding;
 };
 
-bool huffmanEncode( FILE* inputFile, FILE* outputFile );
-bool huffmanDecode( FILE* inputFile, FILE* outputFile );
+bool HuffmanEncode( FILE* inputFile, FILE* outputFile );
+bool HuffmanDecode( FILE* inputFile, FILE* outputFile );
 
 /**
- *  Given a file name, an analysis_info structure is created with the frequency
+ *  Given a file name, an AnalysisInfo structure is created with the frequency
  * of every byte present in that file. If the file cannot be opened or memory
  * allocation for the analysis information is not possible, the operation fails.
  *  If the operation fails, NULL is returned and @{errno} is left with a value
  * that describes the problem that occurred.
  */
-struct analysis_info* analyse_file( FILE* inputFile );
+struct AnalysisInfo* AnalyseFile( FILE* inputFile );
 
 /**
  * Given the analysis information of a file, a huffman tree is generated.
  * @param  info Analysis info of a file that was analysed
  * @return      Pointer to a new huffman_tree structure
  */
-HuffmanTree* create_huffman_tree( struct analysis_info *info );
+HuffmanTree* CreateHuffmanTree( struct AnalysisInfo* info );
 
 /**
  * Given an input stream, reads the encoded huffman tree
  */
-HuffmanTree* read_huffman_tree( BitStream* inStream );
+HuffmanTree* ReadHuffmanTree( BitStream* inStream );
 

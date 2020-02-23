@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include <string.h>
-#include "huffman_algo.hpp"
-#include "binary_heap.hpp"
-#include "bitstream.hpp"
-#include "character_encoding.hpp"
+#include "HuffmanAlgorithm.hpp"
+#include "BinaryHeap.hpp"
+#include "BitStream.hpp"
+#include "CharacterEncoding.hpp"
 
 #define BUFFER_SZ 512
 #define TRUE 1
@@ -20,66 +20,68 @@
 	(byte & 0x02 ? '1' : '0'), \
 	(byte & 0x01 ? '1' : '0')
 
-HuffmanNode::HuffmanNode( unsigned long weight, bool isLeaf )
-	: _weight(weight)
-	, _isLeaf(isLeaf)
+HuffmanNode::HuffmanNode( unsigned long weight ) : weight( weight )
 {
 
 }
 
-unsigned long HuffmanNode::weight() const
+unsigned long HuffmanNode::Weight() const
 {
-	return _weight;
+	return weight;
 }
 
 bool HuffmanNode::operator < ( const HuffmanNode& node ) const
 {
-	return _weight < node._weight;
+	return weight < node.weight;
 }
 
 HuffmanLeafNode::HuffmanLeafNode( unsigned long weight, unsigned char elem )
-	: HuffmanNode(weight, true),  _elem(elem) { }
-
-void HuffmanLeafNode::saveEncoding( CharacterEncoding **arr,
-		CharacterEncoding *curr ) const
+	: HuffmanNode( weight )
+	, elem( elem )
 {
-	arr[_elem] = new CharacterEncoding( *curr );
+
+}
+
+void HuffmanLeafNode::SaveEncoding(
+		CharacterEncoding **arr, CharacterEncoding *curr ) const
+{
+	arr[elem] = new CharacterEncoding( *curr );
 }
 
 HuffmanParentNode::HuffmanParentNode( HuffmanNode* left, HuffmanNode* right )
-	: HuffmanNode( left->weight() + right->weight(), false )
-	, _left(left)
-	, _right(right)
+	: HuffmanNode( left->Weight() + right->Weight() )
+	, left(left)
+	, right(right)
 {
 
 }
 
 HuffmanParentNode::~HuffmanParentNode()
 {
-	delete _left;
-	delete _right;
+	delete left;
+	delete right;
 }
 
-void HuffmanParentNode::saveEncoding( CharacterEncoding **arr,
+void HuffmanParentNode::SaveEncoding( CharacterEncoding **arr,
 		CharacterEncoding *curr ) const
 {
-	curr->addBit( 0 );
-	_left->saveEncoding( arr, curr );
-	curr->removeBit();
-	curr->addBit( 1 );
-	_right->saveEncoding( arr, curr );
-	curr->removeBit();
+	curr->AddBit( 0 );
+	left->SaveEncoding( arr, curr );
+	curr->RemoveBit();
+	curr->AddBit( 1 );
+	right->SaveEncoding( arr, curr );
+	curr->RemoveBit();
 }
 
-HuffmanTree::HuffmanTree( const HuffmanNode* head ) : _head( head )
+HuffmanTree::HuffmanTree( const HuffmanNode* head ) : head( head )
 {
-	_encoding = new CharacterEncoding*[256];
+	encoding = new CharacterEncoding*[256];
 	for ( unsigned i = 0; i < 256; i++ ) {
-		_encoding[i] = NULL;
+		encoding[i] = NULL;
 	}
 	CharacterEncoding* curr = new CharacterEncoding();
-	if ( _head != NULL ) {
-		_head->saveEncoding( _encoding, curr );
+	if ( head != NULL ) {
+		head->SaveEncoding( encoding, curr );
 	}
 	delete curr;
 }
@@ -87,86 +89,86 @@ HuffmanTree::HuffmanTree( const HuffmanNode* head ) : _head( head )
 HuffmanTree::~HuffmanTree()
 {
 	for ( unsigned i = 0; i < 256; i++ ) {
-		if ( _encoding[i] ) {
-			delete _encoding[i];
+		if ( encoding[i] ) {
+			delete encoding[i];
 		}
 	}
-	delete[] _encoding;
-	delete _head;
+	delete[] encoding;
+	delete head;
 }
 
-void HuffmanLeafNode::print( unsigned const depth ) const
+void HuffmanLeafNode::Print( unsigned const depth ) const
 {
 	for ( unsigned i = 0; i < depth; i++ ) {
 		printf(" | ");
 	}
-	printf( "\"%d\" - %lu\n", _elem, weight() );
+	printf( "\"%d\" - %lu\n", elem, Weight() );
 }
 
-void HuffmanParentNode::print( unsigned const depth ) const
+void HuffmanParentNode::Print( unsigned const depth ) const
 {
-	_left->print( depth + 1 );
+	left->Print( depth + 1 );
 	for ( unsigned i = 0; i < depth; i++ ) {
 		printf( " | " );
 	}
-	printf( "%lu\n", weight() );
-	_right->print( depth + 1 );
+	printf( "%lu\n", Weight() );
+	right->Print( depth + 1 );
 }
 
-void HuffmanTree::print() const
+void HuffmanTree::Print() const
 {
-	_head->print( 0 );
+	head->Print( 0 );
 	for ( unsigned i = 0; i < 256; i++ ) {
-		if ( _encoding[i] != NULL ) {
+		if ( encoding[i] != NULL ) {
 			printf( "Encoding for %d is: ", i );
-			for ( unsigned j = 0; j < _encoding[i]->getBitSize(); j++ ) {
-				printf( "%d", _encoding[i]->getBit(j) );
+			for ( unsigned j = 0; j < encoding[i]->GetBitSize(); j++ ) {
+				printf( "%d", encoding[i]->GetBit(j) );
 			}
 			printf( "\n" );
 		}
 	}
 }
 
-void HuffmanLeafNode::encodeBinary( BitStream *outStream ) const
+void HuffmanLeafNode::EncodeBinary( BitStream *outStream ) const
 {
-	outStream->writeBit( 0 );
-	outStream->writeNBits( &_elem, sizeof(_elem) * 8 );
+	outStream->WriteBit( 0 );
+	outStream->WriteNBits( &elem, sizeof(elem) * 8 );
 }
 
-void HuffmanParentNode::encodeBinary( BitStream *outStream ) const
+void HuffmanParentNode::EncodeBinary( BitStream *outStream ) const
 {
-	outStream->writeBit( 1 );
-	_left->encodeBinary( outStream );
-	_right->encodeBinary( outStream );
+	outStream->WriteBit( 1 );
+	left->EncodeBinary( outStream );
+	right->EncodeBinary( outStream );
 }
 
-void HuffmanTree::encodeBinary( BitStream *outStream ) const
+void HuffmanTree::EncodeBinary( BitStream *outStream ) const
 {
-	if ( _head ) {
-		_head->encodeBinary( outStream );
+	if ( head ) {
+		head->EncodeBinary( outStream );
 	}
 }
 
-void HuffmanTree::encodeByte( BitStream *outStream , unsigned char byte ) const
+void HuffmanTree::EncodeByte( BitStream *outStream , unsigned char byte ) const
 {
-	CharacterEncoding* encoding = _encoding[byte];
-	for ( unsigned i = 0; i < encoding->getBitSize(); i++ ) {
-		outStream->writeBit( encoding->getBit( i ) );
+	CharacterEncoding* currEncoding = encoding[byte];
+	for ( unsigned i = 0; i < currEncoding->GetBitSize(); i++ ) {
+		outStream->WriteBit( currEncoding->GetBit( i ) );
 	}
 }
 
-bool huffmanEncode( FILE* inputFile, FILE* outputFile )
+bool HuffmanEncode( FILE* inputFile, FILE* outputFile )
 {
 	fprintf( stderr, "Started analysis... " );
 	fflush( stdout );
-	struct analysis_info* info = analyse_file( inputFile );
+	struct AnalysisInfo* info = AnalyseFile( inputFile );
 	if ( info == NULL ) {
 		fprintf( stderr, "ERROR\n" );
 		return false;
 	}
 
 	fprintf( stderr, "DONE\nCreating Huffman Tree... " );
-	HuffmanTree *tree = create_huffman_tree( info );
+	HuffmanTree *tree = CreateHuffmanTree( info );
 	if ( tree == NULL ) {
 		fprintf( stderr, "ERROR\n" );
 		delete info;
@@ -185,11 +187,11 @@ bool huffmanEncode( FILE* inputFile, FILE* outputFile )
 	}
 
 	fprintf( stderr, "DONE\n" );
-	tree->print();
+	tree->Print();
 
 	/* Output file_size and huffman tree */
 	fwrite( &info->total, sizeof(info->total), 1, outputFile );
-	tree->encodeBinary( outStream );
+	tree->EncodeBinary( outStream );
 
 	/* Set input file position to beginning */
 	fseek( inputFile, 0, SEEK_SET );
@@ -197,10 +199,10 @@ bool huffmanEncode( FILE* inputFile, FILE* outputFile )
 	char input;
 	size_t bytes_read;
 	while ( ( bytes_read = fread( &input, 1, 1, inputFile ) ) > 0 ) {
-		tree->encodeByte( outStream, input );
+		tree->EncodeByte( outStream, input );
 	}
 
-	outStream->flush();
+	outStream->Flush();
 
 	delete outStream;
 	delete tree;
@@ -208,14 +210,14 @@ bool huffmanEncode( FILE* inputFile, FILE* outputFile )
 	return true;
 }
 
-bool huffmanDecode( FILE* inputFile, FILE* outputFile )
+bool HuffmanDecode( FILE* inputFile, FILE* outputFile )
 {
 	BitStream* inputStream = new BitStream( inputFile );
 	if ( inputStream == NULL ) {
 		return false;
 	}
 
-	HuffmanTree* tree = read_huffman_tree( inputStream );
+	HuffmanTree* tree = ReadHuffmanTree( inputStream );
 	if ( tree == NULL ) {
 		delete inputStream;
 		return false;
@@ -229,7 +231,7 @@ bool huffmanDecode( FILE* inputFile, FILE* outputFile )
 	}
 
 	// tree->translate(inputStream, outputStream);
-	outputStream->flush();
+	outputStream->Flush();
 
 	delete outputStream;
 	delete tree;
@@ -237,12 +239,12 @@ bool huffmanDecode( FILE* inputFile, FILE* outputFile )
 	return true;
 }
 
-struct analysis_info* analyse_file( FILE* inputFile )
+struct AnalysisInfo* AnalyseFile( FILE* inputFile )
 {
-	struct analysis_info* res = NULL;
-	res = new struct analysis_info;
+	struct AnalysisInfo* res = NULL;
+	res = new struct AnalysisInfo;
 	if ( res != NULL ) {
-		memset( res, 0, sizeof(struct analysis_info) );
+		memset( res, 0, sizeof(struct AnalysisInfo) );
 
 		unsigned char buffer[BUFFER_SZ];
 		size_t bytes_read = 0;
@@ -261,7 +263,7 @@ struct analysis_info* analyse_file( FILE* inputFile )
 	return res;
 }
 
-HuffmanTree* create_huffman_tree( struct analysis_info* info )
+HuffmanTree* CreateHuffmanTree( struct AnalysisInfo* info )
 {
 	BinaryHeap<HuffmanNode*> heap ( 256 );
 
@@ -284,23 +286,23 @@ HuffmanTree* create_huffman_tree( struct analysis_info* info )
 	return new HuffmanTree( node );
 }
 
-HuffmanNode* read_huffman_node( BitStream* inStream )
+HuffmanNode* ReadHuffmanNode( BitStream* inStream )
 {
-	unsigned char bit = inStream->readBit();
+	unsigned char bit = inStream->ReadBit();
 	if ( bit == 0 ) {
 		unsigned char byte;
-		inStream->readNBits( &byte, 8 );
+		inStream->ReadNBits( &byte, 8 );
 		return new HuffmanLeafNode( 0, byte );
 	} else {
-		HuffmanNode* left = read_huffman_node( inStream );
-		HuffmanNode* right = read_huffman_node( inStream );
+		HuffmanNode* left = ReadHuffmanNode( inStream );
+		HuffmanNode* right = ReadHuffmanNode( inStream );
 		return new HuffmanParentNode( left, right );
 	}
 }
 
-HuffmanTree* read_huffman_tree( BitStream* inStream )
+HuffmanTree* ReadHuffmanTree( BitStream* inStream )
 {
-	HuffmanNode* head = read_huffman_node( inStream );
+	HuffmanNode* head = ReadHuffmanNode( inStream );
 	return new HuffmanTree( head );
 }
 

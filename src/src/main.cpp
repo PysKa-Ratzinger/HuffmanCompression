@@ -1,15 +1,19 @@
 #include <stdio.h>
 #include <string.h>
-#include "huffman_algo.hpp"
-#include "bitstream.hpp"
-#include "binary_heap.hpp"
+#include "HuffmanAlgorithm.hpp"
+#include "BitStream.hpp"
+#include "BinaryHeap.hpp"
 
 #define BUFFER_SZ 512
 
 #define COMPRESS 1
 #define DECOMPRESS 2
 
-int main(){
+int main (int argc, char* argv[])
+{
+	(void) argc;
+	(void) argv;
+
 	char buffer[BUFFER_SZ];
 
 	printf( "Options:\n\n" );
@@ -73,11 +77,11 @@ int main(){
 	switch ( option )
 	{
 		case COMPRESS:
-			operationResult = huffmanEncode(inputFile, outputFile);
+			operationResult = HuffmanEncode(inputFile, outputFile);
 			break;
 			 
 		case DECOMPRESS:
-			operationResult = huffmanDecode(inputFile, outputFile);
+			operationResult = HuffmanDecode(inputFile, outputFile);
 			break;
 
 		default:
