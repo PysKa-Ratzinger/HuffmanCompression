@@ -1,18 +1,42 @@
-CC=g++
-CFLAGS=-W -Wall -Wextra -Werror -Wfatal-errors -g
-CXXFLAGS=-W -Wall -Wextra -Werror -Wfatal-errors -g
-LDLIBS=
-OBJECTS=main.o huffman_algo.o bitstream.o character_encoding.o
+SRC_DIR := ./src
+OBJ_DIR := ./build
+BIN_DIR := ./bin
+TARGET  := main
 
-main: $(OBJECTS)
+dir_guard=@mkdir -p $(@D)
 
-%.o: %.cpp %.hpp
+CC := g++
 
-run: main
-	./main
+CXXFLAGS := -W
+CXXFLAGS += -Wall
+CXXFLAGS += -Wextra
+CXXFLAGS += -Werror
+CXXFLAGS += -Wfatal-errors
+CXXFLAGS += -g
+
+VALGRINDFLAGS := --leak-check=full
+VALGRINDFLAGS += --show-leak-kinds=all
+VALGRINDFLAGS += --track-origins=yes
+
+SOURCES := $(wildcard $(SRC_DIR)/*.cpp)
+OBJECTS := $(SOURCES:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
+
+target: $(OBJECTS) $(BIN_DIR)/$(TARGET)
+
+$(BIN_DIR)/$(TARGET): $(OBJECTS)
+	$(dir_guard)
+	$(CC) $+ -o $@ $(LDFLAGS)
+
+$(OBJECTS): $(OBJ_DIR)/%.o : $(SRC_DIR)/%.cpp
+	$(dir_guard)
+	$(CC) -c $(CXXFLAGS) $< -o $@
+
+run: $(BIN_DIR)/$(TARGET)
+	$(BIN_DIR)/$(TARGET)
 
 debug: main
-	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes ./main
+	valgrind $(VALGRINDFLAGS) ./main
 
 clean:
-	rm -fv *.o *.gch main
+	rm -rfv $(BIN_DIR) $(OBJ_DIR)
+
