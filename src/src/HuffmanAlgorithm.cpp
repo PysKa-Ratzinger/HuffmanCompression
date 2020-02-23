@@ -48,7 +48,7 @@ void HuffmanLeafNode::SaveEncoding(
 	arr[elem] = new CharacterEncoding( *curr );
 }
 
-HuffmanParentNode::HuffmanParentNode( HuffmanNode* left, HuffmanNode* right )
+HuffmanParentNode::HuffmanParentNode( HuffmanNodePtr left, HuffmanNodePtr right )
 	: HuffmanNode( left->Weight() + right->Weight() )
 	, left(left)
 	, right(right)
@@ -58,8 +58,7 @@ HuffmanParentNode::HuffmanParentNode( HuffmanNode* left, HuffmanNode* right )
 
 HuffmanParentNode::~HuffmanParentNode()
 {
-	delete left;
-	delete right;
+
 }
 
 void HuffmanParentNode::SaveEncoding( CharacterEncoding **arr,
@@ -73,7 +72,8 @@ void HuffmanParentNode::SaveEncoding( CharacterEncoding **arr,
 	curr->RemoveBit();
 }
 
-HuffmanTree::HuffmanTree( const HuffmanNode* head ) : head( head )
+HuffmanTree::HuffmanTree( std::shared_ptr<const HuffmanNode> head )
+		: head( head )
 {
 	encoding = new CharacterEncoding*[256];
 	for ( unsigned i = 0; i < 256; i++ ) {
@@ -94,7 +94,6 @@ HuffmanTree::~HuffmanTree()
 		}
 	}
 	delete[] encoding;
-	delete head;
 }
 
 void HuffmanLeafNode::Print( unsigned const depth ) const
@@ -129,31 +128,31 @@ void HuffmanTree::Print() const
 	}
 }
 
-void HuffmanLeafNode::EncodeBinary( BitStream *outStream ) const
+void HuffmanLeafNode::EncodeBinary( BitStream& outStream ) const
 {
-	outStream->WriteBit( 0 );
-	outStream->WriteNBits( &elem, sizeof(elem) * 8 );
+	outStream.WriteBit( 0 );
+	outStream.WriteNBits( &elem, sizeof(elem) * 8 );
 }
 
-void HuffmanParentNode::EncodeBinary( BitStream *outStream ) const
+void HuffmanParentNode::EncodeBinary( BitStream& outStream ) const
 {
-	outStream->WriteBit( 1 );
+	outStream.WriteBit( 1 );
 	left->EncodeBinary( outStream );
 	right->EncodeBinary( outStream );
 }
 
-void HuffmanTree::EncodeBinary( BitStream *outStream ) const
+void HuffmanTree::EncodeBinary( BitStream& outStream ) const
 {
 	if ( head ) {
 		head->EncodeBinary( outStream );
 	}
 }
 
-void HuffmanTree::EncodeByte( BitStream *outStream , unsigned char byte ) const
+void HuffmanTree::EncodeByte( BitStream& outStream , unsigned char byte ) const
 {
 	CharacterEncoding* currEncoding = encoding[byte];
 	for ( unsigned i = 0; i < currEncoding->GetBitSize(); i++ ) {
-		outStream->WriteBit( currEncoding->GetBit( i ) );
+		outStream.WriteBit( currEncoding->GetBit( i ) );
 	}
 }
 
@@ -161,37 +160,21 @@ bool HuffmanEncode( FILE* inputFile, FILE* outputFile )
 {
 	fprintf( stderr, "Started analysis... " );
 	fflush( stdout );
-	struct AnalysisInfo* info = AnalyseFile( inputFile );
-	if ( info == NULL ) {
-		fprintf( stderr, "ERROR\n" );
-		return false;
-	}
+	struct AnalysisInfo info = AnalyseFile( inputFile );
 
 	fprintf( stderr, "DONE\nCreating Huffman Tree... " );
-	HuffmanTree *tree = CreateHuffmanTree( info );
-	if ( tree == NULL ) {
-		fprintf( stderr, "ERROR\n" );
-		delete info;
-		return false;
-	}
+	HuffmanTree tree = CreateHuffmanTree( info );
 
 	fprintf( stderr, "DONE\n" );
 	fprintf( stderr, "Creating output bitstream... " );
-	BitStream* outStream = new BitStream( outputFile );
-
-	if ( outStream == NULL ) {
-		fprintf( stderr, "ERROR\n" );
-		delete tree;
-		delete info;
-		return false;
-	}
+	BitStream outStream( outputFile );
 
 	fprintf( stderr, "DONE\n" );
-	tree->Print();
+	tree.Print();
 
 	/* Output file_size and huffman tree */
-	fwrite( &info->total, sizeof(info->total), 1, outputFile );
-	tree->EncodeBinary( outStream );
+	fwrite( &info.total, sizeof(info.total), 1, outputFile );
+	tree.EncodeBinary( outStream );
 
 	/* Set input file position to beginning */
 	fseek( inputFile, 0, SEEK_SET );
@@ -199,110 +182,88 @@ bool HuffmanEncode( FILE* inputFile, FILE* outputFile )
 	char input;
 	size_t bytes_read;
 	while ( ( bytes_read = fread( &input, 1, 1, inputFile ) ) > 0 ) {
-		tree->EncodeByte( outStream, input );
+		tree.EncodeByte( outStream, input );
 	}
 
-	outStream->Flush();
+	outStream.Flush();
 
-	delete outStream;
-	delete tree;
-	delete info;
 	return true;
 }
 
 bool HuffmanDecode( FILE* inputFile, FILE* outputFile )
 {
-	BitStream* inputStream = new BitStream( inputFile );
-	if ( inputStream == NULL ) {
-		return false;
-	}
-
-	HuffmanTree* tree = ReadHuffmanTree( inputStream );
-	if ( tree == NULL ) {
-		delete inputStream;
-		return false;
-	}
-
-	BitStream* outputStream = new BitStream( outputFile );
-	if ( outputStream == NULL ) {
-		delete inputStream;
-		delete tree;
-		return false;
-	}
+	BitStream inputStream( inputFile );
+	HuffmanTree tree = ReadHuffmanTree( inputStream );
+	BitStream outputStream( outputFile );
 
 	// tree->translate(inputStream, outputStream);
-	outputStream->Flush();
+	outputStream.Flush();
 
-	delete outputStream;
-	delete tree;
-	delete inputStream;
 	return true;
 }
 
-struct AnalysisInfo* AnalyseFile( FILE* inputFile )
+struct AnalysisInfo AnalyseFile( FILE* inputFile )
 {
-	struct AnalysisInfo* res = NULL;
-	res = new struct AnalysisInfo;
-	if ( res != NULL ) {
-		memset( res, 0, sizeof(struct AnalysisInfo) );
+	struct AnalysisInfo res;
 
-		unsigned char buffer[BUFFER_SZ];
-		size_t bytes_read = 0;
-		while ( ( bytes_read = fread( buffer, 1, BUFFER_SZ, inputFile ) ) ) {
-			for ( unsigned i = 0; i < bytes_read; i++ ) {
-				res->frequency[ buffer[i] ]++;
-			}
+	unsigned char buffer[BUFFER_SZ];
+	size_t bytes_read = 0;
+	while ( ( bytes_read = fread( buffer, 1, BUFFER_SZ, inputFile ) ) ) {
+		for ( unsigned i = 0; i < bytes_read; i++ ) {
+			res.frequency[ buffer[i] ]++;
 		}
-
-		unsigned long total = 0;
-		for ( unsigned i = 0; i < 256; i++ ) {
-			total += res->frequency[i];
-		}
-		res->total = total;
 	}
+
+	unsigned long total = 0;
+	for ( unsigned i = 0; i < 256; i++ ) {
+		total += res.frequency[i];
+	}
+	res.total = total;
+
 	return res;
 }
 
-HuffmanTree* CreateHuffmanTree( struct AnalysisInfo* info )
+HuffmanTree CreateHuffmanTree( const struct AnalysisInfo& info )
 {
-	BinaryHeap<HuffmanNode*> heap ( 256 );
+	BinaryHeap<std::shared_ptr<HuffmanNode>> heap ( 256 );
 
 	double sum = 0;
 	for ( unsigned i = 0; i < 0x100; i++ ) {
-		if ( info->frequency[i] > 0 ) {
-			unsigned long weight = info->frequency[i];
-			HuffmanNode* leaf = new HuffmanLeafNode( weight, i );
+		if ( info.frequency[i] > 0 ) {
+			unsigned long weight = info.frequency[i];
+			auto leaf = std::make_shared< HuffmanLeafNode >( weight, i );
 			sum += weight;
 			heap.Insert( leaf );
 		}
 	}
 
 	while ( heap.Size() >= 2 ) {
-		HuffmanNode* parent = new HuffmanParentNode( heap.Pop(), heap.Pop() );
+		auto parent = std::make_shared< HuffmanParentNode >(
+				heap.Pop(), heap.Pop() );
 		heap.Insert( parent );
 	}
 
-	HuffmanNode* node = heap.Pop();
-	return new HuffmanTree( node );
+	std::shared_ptr< HuffmanNode > node( heap.Pop() );
+	return HuffmanTree( node );
 }
 
-HuffmanNode* ReadHuffmanNode( BitStream* inStream )
+static std::shared_ptr< HuffmanNode > ReadHuffmanNode( BitStream& inStream )
 {
-	unsigned char bit = inStream->ReadBit();
+	unsigned char bit = inStream.ReadBit();
 	if ( bit == 0 ) {
 		unsigned char byte;
-		inStream->ReadNBits( &byte, 8 );
-		return new HuffmanLeafNode( 0, byte );
+		inStream.ReadNBits( &byte, 8 );
+		return std::make_shared< HuffmanLeafNode >( 0, byte );
 	} else {
-		HuffmanNode* left = ReadHuffmanNode( inStream );
-		HuffmanNode* right = ReadHuffmanNode( inStream );
-		return new HuffmanParentNode( left, right );
+		std::shared_ptr< HuffmanNode > left = ReadHuffmanNode( inStream );
+		std::shared_ptr< HuffmanNode > right = ReadHuffmanNode( inStream );
+		return std::make_shared< HuffmanParentNode >( left, right );
 	}
 }
 
-HuffmanTree* ReadHuffmanTree( BitStream* inStream )
+HuffmanTree ReadHuffmanTree( BitStream& inStream )
 {
-	HuffmanNode* head = ReadHuffmanNode( inStream );
-	return new HuffmanTree( head );
+	std::shared_ptr< HuffmanNode > head = ReadHuffmanNode( inStream );
+	return HuffmanTree( head );
 }
 

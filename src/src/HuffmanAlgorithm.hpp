@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <memory>
 
 #include "BitStream.hpp"
 #include "CharacterEncoding.hpp"
@@ -21,12 +22,12 @@ struct AnalysisInfo
 	 * corresponds to the byte analysed, and the value to the frequency of
 	 * said byte.
 	 */
-	unsigned long frequency[TOTAL_CHARS];
+	unsigned long frequency[TOTAL_CHARS] { 0 };
 
 	/**
 	 * The total number of bytes in the file
 	 */
-	u_int64_t total;
+	u_int64_t total = 0;
 };
 
 /*
@@ -44,7 +45,7 @@ public:
 	unsigned long Weight() const;
 	bool          operator < ( const HuffmanNode& node ) const;
 	virtual void  Print( unsigned const depth ) const = 0;
-	virtual void  EncodeBinary( BitStream* outStream ) const = 0;
+	virtual void  EncodeBinary( BitStream& outStream ) const = 0;
 	virtual void  SaveEncoding( CharacterEncoding* arr[256], CharacterEncoding* curr ) const = 0;
 
 private:
@@ -64,7 +65,7 @@ public:
 	~HuffmanLeafNode() {}
 
 	void Print( unsigned const depth ) const;
-	void EncodeBinary( BitStream* outStream ) const;
+	void EncodeBinary( BitStream& outStream ) const;
 	void SaveEncoding( CharacterEncoding* arr[256], CharacterEncoding* curr ) const;
 
 private:
@@ -80,16 +81,18 @@ two children.
 class HuffmanParentNode : public HuffmanNode
 {
 public:
-	HuffmanParentNode( HuffmanNode* left, HuffmanNode* right );
+	using HuffmanNodePtr = std::shared_ptr< HuffmanNode >;
+
+	HuffmanParentNode( HuffmanNodePtr left, HuffmanNodePtr right );
 	~HuffmanParentNode();
 
 	void Print( unsigned const depth ) const;
-	void EncodeBinary( BitStream* outStream ) const;
+	void EncodeBinary( BitStream& outStream ) const;
 	void SaveEncoding( CharacterEncoding* arr[256], CharacterEncoding* curr ) const;
 
 private:
-	HuffmanNode* left;
-	HuffmanNode* right;
+	HuffmanNodePtr left;
+	HuffmanNodePtr right;
 };
 
 /*
@@ -101,16 +104,16 @@ decode information
 class HuffmanTree
 {
 public:
-	HuffmanTree( const HuffmanNode* head );
+	HuffmanTree( std::shared_ptr<const HuffmanNode> head );
 	~HuffmanTree();
 
 	void Print() const;
-	void EncodeBinary( BitStream* outStream ) const;
-	void EncodeByte( BitStream* outStream, unsigned char byte ) const;
+	void EncodeBinary( BitStream& outStream ) const;
+	void EncodeByte( BitStream& outStream, unsigned char byte ) const;
 
 private:
-	const HuffmanNode* head;
-	CharacterEncoding** encoding;
+	std::shared_ptr<const HuffmanNode> head;
+	CharacterEncoding**                encoding;
 };
 
 bool HuffmanEncode( FILE* inputFile, FILE* outputFile );
@@ -123,17 +126,17 @@ bool HuffmanDecode( FILE* inputFile, FILE* outputFile );
  *  If the operation fails, NULL is returned and @{errno} is left with a value
  * that describes the problem that occurred.
  */
-struct AnalysisInfo* AnalyseFile( FILE* inputFile );
+struct AnalysisInfo AnalyseFile( FILE* inputFile );
 
 /**
  * Given the analysis information of a file, a huffman tree is generated.
  * @param  info Analysis info of a file that was analysed
  * @return      Pointer to a new huffman_tree structure
  */
-HuffmanTree* CreateHuffmanTree( struct AnalysisInfo* info );
+HuffmanTree CreateHuffmanTree( const struct AnalysisInfo& info );
 
 /**
  * Given an input stream, reads the encoded huffman tree
  */
-HuffmanTree* ReadHuffmanTree( BitStream* inStream );
+HuffmanTree ReadHuffmanTree( BitStream& inStream );
 

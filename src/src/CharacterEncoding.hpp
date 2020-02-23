@@ -15,10 +15,11 @@ public:
 	CharacterEncoding();
 	CharacterEncoding( CharacterEncoding const& original );
 	~CharacterEncoding();
-	size_t GetBitSize();
-	void AddBit( unsigned char bit );
-	void RemoveBit();
+
 	unsigned char GetBit( size_t index ) const;
+	size_t        GetBitSize();
+	void          AddBit( unsigned char bit );
+	void          RemoveBit();
 
 private:
 	char*     bytes;

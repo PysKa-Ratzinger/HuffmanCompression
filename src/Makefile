@@ -25,17 +25,17 @@ target: $(OBJECTS) $(BIN_DIR)/$(TARGET)
 
 $(BIN_DIR)/$(TARGET): $(OBJECTS)
 	$(dir_guard)
-	$(CC) $+ -o $@ $(LDFLAGS)
+	$(CC) -o $@ $+ $(LDFLAGS)
 
 $(OBJECTS): $(OBJ_DIR)/%.o : $(SRC_DIR)/%.cpp
 	$(dir_guard)
-	$(CC) -c $(CXXFLAGS) $< -o $@
+	$(CC) -o $@ -c $(CXXFLAGS) $<
 
 run: $(BIN_DIR)/$(TARGET)
 	$(BIN_DIR)/$(TARGET)
 
-debug: main
-	valgrind $(VALGRINDFLAGS) ./main
+debug: $(BIN_DIR)/$(TARGET)
+	valgrind $(VALGRINDFLAGS) $(BIN_DIR)/$(TARGET)
 
 clean:
 	rm -rfv $(BIN_DIR) $(OBJ_DIR)
