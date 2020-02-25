@@ -1,9 +1,11 @@
 #include "BitStream.hpp"
 
-BitStream::BitStream( FILE* file )
-		: file(file)
-		, charOutBuffer(0)
-		, charOutBufferSize(0)
+#include <unistd.h>
+
+BitStream::BitStream( int fd )
+		: fd( fd )
+		, charOutBuffer( 0 )
+		, charOutBufferSize( 0 )
 {
 
 }
@@ -25,11 +27,11 @@ void BitStream::WriteNBits( const unsigned char *buffer, size_t numBits )
 	}
 }
 
-void BitStream::WriteBit( unsigned char bit )
+void BitStream::WriteBit( bool bit )
 {
 	size_t shift = 8 - charOutBufferSize - 1;
 	charOutBuffer >>= shift;
-	charOutBuffer |= bit & 0x1;
+	charOutBuffer |= bit;
 	charOutBuffer <<= shift;
 	charOutBufferSize++;
 	if ( charOutBufferSize == 8 ) {
@@ -40,7 +42,7 @@ void BitStream::WriteBit( unsigned char bit )
 unsigned char BitStream::ReadBit()
 {
 	if ( charInBufferSize == 0 ) {
-		fread( &charInBuffer, 1, 1, file );
+		pread( fd, &charInBuffer, 1, 1 );
 		charInBufferSize = 8;
 	}
 	unsigned char res = charInBuffer & 0x80;
@@ -69,7 +71,7 @@ void BitStream::Flush()
 {
 	if ( charOutBufferSize > 0 ) {
 		charOutBuffer <<= ( 8 - charOutBufferSize );
-		fwrite( &charOutBuffer, 1, 1, file );
+		pwrite( fd, &charOutBuffer, 1, 1 );
 		charOutBufferSize = 0;
 	}
 }

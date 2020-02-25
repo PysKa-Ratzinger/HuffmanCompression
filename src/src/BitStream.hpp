@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdio.h>
+#include <stdlib.h>
 
 /*
 =============================================
@@ -27,16 +27,16 @@ structure. The FIRST bit written will be the FIRST bit read.
  */
 class BitStream{
 public:
-	BitStream( FILE* file );
+	BitStream( int fd );
 
 	void          WriteNBits( const unsigned char* buffer, size_t numBits );
-	void          WriteBit( unsigned char bit );
+	void          WriteBit( bool bit );
 	unsigned char ReadBit();
 	void          ReadNBits( unsigned char* buffer, size_t numBits );
 	void          Flush();
 
 private:
-	FILE*     file;
+	int       fd;
 	char      charInBuffer;
 	char      charOutBuffer;
 	size_t    charInBufferSize;
