@@ -20,13 +20,13 @@ public:
 
 private:
 	std::vector< T > heap;
-	size_t           currSize;
 };
 
 template < typename T >
 BinaryHeap<T>::BinaryHeap( size_t startingHeapSize )
-		: heap( startingHeapSize )
-		, currSize( 0 ) { }
+{
+	heap.reserve( startingHeapSize );
+}
 
 template < typename T >
 BinaryHeap<T>::~BinaryHeap<T>() { }
@@ -34,12 +34,7 @@ BinaryHeap<T>::~BinaryHeap<T>() { }
 template < typename T >
 bool BinaryHeap<T>::Insert( const T& elem)
 {
-	if ( currSize < heap.size() ) {
-		heap[currSize] = elem;
-	} else {
-		heap.push_back( elem );
-	}
-	currSize++;
+	heap.push_back( elem );
 
 	size_t pos = Size() - 1;
 	size_t topPos = (pos - 1) / 2;
@@ -63,8 +58,8 @@ T BinaryHeap<T>::Pop()
 	}
 
 	T res = heap[0];
-	currSize--;
-	heap[0] = heap.at( currSize );
+	heap[0] = heap.back();
+	heap.pop_back();
 
 	size_t pos = 0;
 	while( true ){
@@ -94,7 +89,7 @@ T BinaryHeap<T>::Pop()
 template < typename T >
 size_t BinaryHeap<T>::Size() const
 {
-	return currSize;
+	return heap.size();
 }
 
 template < typename T >
