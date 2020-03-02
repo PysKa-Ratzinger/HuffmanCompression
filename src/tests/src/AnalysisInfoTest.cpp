@@ -2,7 +2,10 @@
 
 #include "HuffmanAlgorithm.hpp"
 
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <unistd.h>
+#include <string.h>
 
 Test* AnalysisInfoTest::Suite()
 {
@@ -16,14 +19,18 @@ Test* AnalysisInfoTest::Suite()
 void AnalysisInfoTest::SimpleTest()
 {
 	const char* inputFileName = "/tmp/AnalysisInfoTestFile.txt";
-	FILE* inputFile = fopen( inputFileName, "w+" );
+	int inputFile = open( inputFileName, O_WRONLY | O_TRUNC | O_CREAT );
 
-	fprintf( inputFile, "aaaaaaaabbbbccdefghijklmnopqrstuvwxyz" );
-	fclose( inputFile );
+	const char* fileContents = "aaaaaaaabbbbccdefghijklmnopqrstuvwxyz";
+	write( inputFile, fileContents, strlen( fileContents ) );
+	close( inputFile );
 
-	inputFile = fopen( inputFileName, "r" );
+	inputFile = open( inputFileName, O_RDONLY );
+
+	// Load AnalysisInfo after reading file
 	struct AnalysisInfo info = AnalyseFile( inputFile );
-	fclose( inputFile );
+	close( inputFile );
+
 	unlink( inputFileName );
 
 	unsigned long expectedFrequencies[256] { 0 };

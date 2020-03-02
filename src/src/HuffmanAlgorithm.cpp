@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <string.h>
-#include "HuffmanAlgorithm.hpp"
+#include <unistd.h>
+
 #include "BinaryHeap.hpp"
 #include "BitStream.hpp"
 #include "CharacterEncoding.hpp"
+#include "HuffmanAlgorithm.hpp"
 
 #define BUFFER_SZ 512
 #define TRUE 1
@@ -156,32 +158,32 @@ void HuffmanTree::EncodeByte( BitStream& outStream , unsigned char byte ) const
 	}
 }
 
-bool HuffmanEncode( FILE* inputFile, FILE* outputFile )
+bool HuffmanEncode( int inFD, int outFD )
 {
 	fprintf( stderr, "Started analysis... " );
 	fflush( stdout );
-	struct AnalysisInfo info = AnalyseFile( inputFile );
+	struct AnalysisInfo info = AnalyseFile( inFD );
 
 	fprintf( stderr, "DONE\nCreating Huffman Tree... " );
 	HuffmanTree tree = CreateHuffmanTree( info );
 
 	fprintf( stderr, "DONE\n" );
 	fprintf( stderr, "Creating output bitstream... " );
-	BitStream outStream( outputFile );
+	BitStream outStream( outFD );
 
 	fprintf( stderr, "DONE\n" );
 	tree.Print();
 
 	/* Output file_size and huffman tree */
-	fwrite( &info.total, sizeof(info.total), 1, outputFile );
+	write( outFD, &info.total, sizeof(info.total) );
 	tree.EncodeBinary( outStream );
 
 	/* Set input file position to beginning */
-	fseek( inputFile, 0, SEEK_SET );
+	lseek( inFD, 0, SEEK_SET );
 
 	char input;
 	size_t bytes_read;
-	while ( ( bytes_read = fread( &input, 1, 1, inputFile ) ) > 0 ) {
+	while ( ( bytes_read = read( inFD, &input, 1 ) ) > 0 ) {
 		tree.EncodeByte( outStream, input );
 	}
 
@@ -190,11 +192,11 @@ bool HuffmanEncode( FILE* inputFile, FILE* outputFile )
 	return true;
 }
 
-bool HuffmanDecode( FILE* inputFile, FILE* outputFile )
+bool HuffmanDecode( int inFD, int outFD )
 {
-	BitStream inputStream( inputFile );
+	BitStream inputStream( inFD );
 	HuffmanTree tree = ReadHuffmanTree( inputStream );
-	BitStream outputStream( outputFile );
+	BitStream outputStream( outFD );
 
 	// tree->translate(inputStream, outputStream);
 	outputStream.Flush();
@@ -202,20 +204,20 @@ bool HuffmanDecode( FILE* inputFile, FILE* outputFile )
 	return true;
 }
 
-struct AnalysisInfo AnalyseFile( FILE* inputFile )
+struct AnalysisInfo AnalyseFile( int inFD )
 {
 	struct AnalysisInfo res;
 
-	unsigned char buffer[BUFFER_SZ];
-	size_t bytes_read = 0;
-	while ( ( bytes_read = fread( buffer, 1, BUFFER_SZ, inputFile ) ) ) {
-		for ( unsigned i = 0; i < bytes_read; i++ ) {
+	uint8_t buffer[BUFFER_SZ];
+	ssize_t bytes_read = 0;
+	while ( ( bytes_read = read( inFD, buffer, BUFFER_SZ ) ) > 0 ) {
+		for ( ssize_t i = 0; i < bytes_read; i++ ) {
 			res.frequency[ buffer[i] ]++;
 		}
 	}
 
 	unsigned long total = 0;
-	for ( unsigned i = 0; i < 256; i++ ) {
+	for ( short i = 0; i < 256; i++ ) {
 		total += res.frequency[i];
 	}
 	res.total = total;

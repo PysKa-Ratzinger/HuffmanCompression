@@ -13,6 +13,7 @@ CXXFLAGS += -Wextra
 CXXFLAGS += -Werror
 CXXFLAGS += -Wfatal-errors
 CXXFLAGS += -g
+CXXFLAGS += -O0
 
 VALGRINDFLAGS := --leak-check=full
 VALGRINDFLAGS += --show-leak-kinds=all

@@ -73,15 +73,18 @@ int main (int argc, char* argv[])
 
 	fprintf( stderr, "DONE\n" );
 
+	int inFD = fileno( inputFile );
+	int outFD = fileno( outputFile );
+
 	bool operationResult;
 	switch ( option )
 	{
 		case COMPRESS:
-			operationResult = HuffmanEncode(inputFile, outputFile);
+			operationResult = HuffmanEncode( inFD, outFD );
 			break;
 			 
 		case DECOMPRESS:
-			operationResult = HuffmanDecode(inputFile, outputFile);
+			operationResult = HuffmanDecode( inFD, outFD );
 			break;
 
 		default:

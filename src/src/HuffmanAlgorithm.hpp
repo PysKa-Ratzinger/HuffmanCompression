@@ -1,6 +1,5 @@
 #pragma once
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <memory>
 
@@ -116,8 +115,8 @@ private:
 	CharacterEncoding**                encoding;
 };
 
-bool HuffmanEncode( FILE* inputFile, FILE* outputFile );
-bool HuffmanDecode( FILE* inputFile, FILE* outputFile );
+bool HuffmanEncode( int inFD, int outFD );
+bool HuffmanDecode( int inFD, int outFD );
 
 /**
  *  Given a file name, an AnalysisInfo structure is created with the frequency
@@ -126,7 +125,7 @@ bool HuffmanDecode( FILE* inputFile, FILE* outputFile );
  *  If the operation fails, NULL is returned and @{errno} is left with a value
  * that describes the problem that occurred.
  */
-struct AnalysisInfo AnalyseFile( FILE* inputFile );
+struct AnalysisInfo AnalyseFile( int inFD );
 
 /**
  * Given the analysis information of a file, a huffman tree is generated.

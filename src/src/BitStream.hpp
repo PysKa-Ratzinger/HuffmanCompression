@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdlib.h>
+#include <stdint.h>
 
 /*
 =============================================
@@ -31,14 +32,14 @@ public:
 
 	void          WriteNBits( const unsigned char* buffer, size_t numBits );
 	void          WriteBit( bool bit );
-	unsigned char ReadBit();
+	bool          ReadBit();
 	void          ReadNBits( unsigned char* buffer, size_t numBits );
 	void          Flush();
 
 private:
 	int       fd;
-	char      charInBuffer;
-	char      charOutBuffer;
+	uint8_t   charInBuffer;
+	uint8_t   charOutBuffer;
 	size_t    charInBufferSize;
 	size_t    charOutBufferSize;
 };

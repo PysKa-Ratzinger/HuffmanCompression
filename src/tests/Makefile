@@ -16,6 +16,7 @@ CXXFLAGS += -Werror
 CXXFLAGS += -Wextra
 CXXFLAGS += -Wformat-security
 CXXFLAGS += -g
+CXXFLAGS += -O0
 
 LDLIBS := -lpthread
 LDLIBS += -ldl

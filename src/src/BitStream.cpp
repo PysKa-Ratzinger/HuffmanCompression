@@ -39,10 +39,10 @@ void BitStream::WriteBit( bool bit )
 	}
 }
 
-unsigned char BitStream::ReadBit()
+bool BitStream::ReadBit()
 {
 	if ( charInBufferSize == 0 ) {
-		pread( fd, &charInBuffer, 1, 1 );
+		read( fd, &charInBuffer, 1 );
 		charInBufferSize = 8;
 	}
 	unsigned char res = charInBuffer & 0x80;
@@ -71,7 +71,7 @@ void BitStream::Flush()
 {
 	if ( charOutBufferSize > 0 ) {
 		charOutBuffer <<= ( 8 - charOutBufferSize );
-		pwrite( fd, &charOutBuffer, 1, 1 );
+		write( fd, &charOutBuffer, 1 );
 		charOutBufferSize = 0;
 	}
 }
