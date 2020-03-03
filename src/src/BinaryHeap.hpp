@@ -35,18 +35,7 @@ template < typename T >
 bool BinaryHeap<T>::Insert( const T& elem)
 {
 	heap.push_back( elem );
-
-	size_t pos = Size() - 1;
-	size_t topPos = (pos - 1) / 2;
-	while ( pos != 0 ) {
-		if ( heap[pos] < heap[topPos] ) {
-			std::swap( heap[topPos], heap[pos] );
-			pos = topPos;
-			topPos = (pos - 1) / 2;
-		} else {
-			break;
-		}
-	}
+	std::push_heap( heap.begin(), heap.end(), std::greater<>{} );
 	return true;
 }
 
@@ -57,32 +46,10 @@ T BinaryHeap<T>::Pop()
 		throw std::range_error( "Heap is empty" );
 	}
 
-	T res = heap[0];
-	heap[0] = heap.back();
+	std::pop_heap( heap.begin(), heap.end(), std::greater<>{} );
+
+	T res = heap.back();
 	heap.pop_back();
-
-	size_t pos = 0;
-	while( true ){
-		size_t left = pos*2 + 1;
-		size_t right = left + 1;
-		size_t target;
-		if( right < Size() ) {
-			// Both children are present
-			target = heap[left] < heap[right] ? left : right;
-		} else if ( left < Size() ) {
-			// Only left child is present
-			target = left;
-		} else {
-			break;
-		}
-
-		if ( heap[target] < heap[pos] ) {
-			std::swap( heap[target], heap[pos] );
-			pos = target;
-		} else {
-			break;
-		}
-	}
 	return res;
 }
 
