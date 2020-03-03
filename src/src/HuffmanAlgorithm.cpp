@@ -199,11 +199,11 @@ bool HuffmanDecode( int inFD, int outFD )
 	return true;
 }
 
-class PointerGreater {
-public:
+template < typename T >
+struct PointerGreater {
 	bool operator()(
-			const std::shared_ptr<HuffmanNode>& a,
-			const std::shared_ptr<HuffmanNode>& b ) const {
+			const std::shared_ptr<T>& a,
+			const std::shared_ptr<T>& b ) const {
 		return a < b;
 	}
 };
@@ -228,10 +228,9 @@ HuffmanTree CreateHuffmanTree( const struct FileAnalysis& info )
 		p->Print(0);
 	}
 
-	PointerGreater p;
-
 	// Create heap with character frequencies
-	BinaryHeap<HuffNodePtr, PointerGreater> heap ( elems, p );
+	BinaryHeap<HuffNodePtr, PointerGreater<HuffmanNode>> heap
+		( elems, PointerGreater<HuffmanNode>() );
 
 	// Keep joining the two largest frequencies under a parent node (whose
 	// frequency will be their sum), until only 1 node remains
