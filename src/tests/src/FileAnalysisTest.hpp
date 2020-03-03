@@ -4,7 +4,7 @@
 
 using namespace CppUnit;
 
-class AnalysisInfoTest : public TestCase
+class FileAnalysisTest : public TestCase
 {
 public:
 	static Test* Suite();

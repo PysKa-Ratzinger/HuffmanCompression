@@ -2,32 +2,11 @@
 
 #include <stdlib.h>
 #include <memory>
+#include <array>
 
 #include "BitStream.hpp"
 #include "CharacterEncoding.hpp"
-
-#define TOTAL_CHARS 0x100
-
-/*
-================================
-Used to store all the information regarding the frequency of every byte
-found in the analysed file
-================================
- */
-struct AnalysisInfo
-{
-	/**
-	 * Array with the frequency of every byte. The index of each frequency
-	 * corresponds to the byte analysed, and the value to the frequency of
-	 * said byte.
-	 */
-	unsigned long frequency[TOTAL_CHARS] { 0 };
-
-	/**
-	 * The total number of bytes in the file
-	 */
-	u_int64_t total = 0;
-};
+#include "FileAnalysis.hpp"
 
 /*
 ================================
@@ -45,7 +24,9 @@ public:
 	bool          operator < ( const HuffmanNode& node ) const;
 	virtual void  Print( unsigned const depth ) const = 0;
 	virtual void  EncodeBinary( BitStream& outStream ) const = 0;
-	virtual void  SaveEncoding( CharacterEncoding* arr[256], CharacterEncoding* curr ) const = 0;
+	virtual void  SaveEncoding( 
+			std::array< CharacterEncoding, 256>& arr,
+			CharacterEncoding& curr ) const = 0;
 
 private:
 	unsigned long weight;
@@ -65,7 +46,9 @@ public:
 
 	void Print( unsigned const depth ) const;
 	void EncodeBinary( BitStream& outStream ) const;
-	void SaveEncoding( CharacterEncoding* arr[256], CharacterEncoding* curr ) const;
+	void SaveEncoding(
+			std::array< CharacterEncoding, 256>& arr,
+			CharacterEncoding& curr ) const;
 
 private:
 	unsigned char elem;
@@ -87,7 +70,9 @@ public:
 
 	void Print( unsigned const depth ) const;
 	void EncodeBinary( BitStream& outStream ) const;
-	void SaveEncoding( CharacterEncoding* arr[256], CharacterEncoding* curr ) const;
+	void SaveEncoding( 
+			std::array< CharacterEncoding, 256>& arr,
+			CharacterEncoding& curr ) const;
 
 private:
 	HuffmanNodePtr left;
@@ -107,32 +92,31 @@ public:
 	~HuffmanTree();
 
 	void Print() const;
+
+	/*
+	 * Outputs the Huffman Encoding tree in a binary form
+	 */
 	void EncodeBinary( BitStream& outStream ) const;
+
+	/*
+	 * Given a byte, whose encoding we know, output it's binary correspondent
+	 */
 	void EncodeByte( BitStream& outStream, unsigned char byte ) const;
 
 private:
-	std::shared_ptr<const HuffmanNode> head;
-	CharacterEncoding**                encoding;
+	std::shared_ptr< const HuffmanNode >   head;
+	std::array< CharacterEncoding, 256 >   encoding;
 };
 
 bool HuffmanEncode( int inFD, int outFD );
 bool HuffmanDecode( int inFD, int outFD );
 
 /**
- *  Given a file name, an AnalysisInfo structure is created with the frequency
- * of every byte present in that file. If the file cannot be opened or memory
- * allocation for the analysis information is not possible, the operation fails.
- *  If the operation fails, NULL is returned and @{errno} is left with a value
- * that describes the problem that occurred.
- */
-struct AnalysisInfo AnalyseFile( int inFD );
-
-/**
  * Given the analysis information of a file, a huffman tree is generated.
  * @param  info Analysis info of a file that was analysed
  * @return      Pointer to a new huffman_tree structure
  */
-HuffmanTree CreateHuffmanTree( const struct AnalysisInfo& info );
+HuffmanTree CreateHuffmanTree( const struct FileAnalysis& info );
 
 /**
  * Given an input stream, reads the encoded huffman tree

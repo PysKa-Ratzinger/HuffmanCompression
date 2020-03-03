@@ -6,11 +6,13 @@
 
 #include <stdlib.h>
 
-template < typename T >
+template < typename T, class Compare = std::greater< T > >
 class BinaryHeap
 {
 public:
 	BinaryHeap( size_t startingHeapSize );
+	BinaryHeap( const std::vector< T >& initialElements );
+	BinaryHeap( const std::vector< T >& initialElements, Compare comp );
 	~BinaryHeap();
 
 	size_t Size() const;
@@ -20,47 +22,64 @@ public:
 
 private:
 	std::vector< T > heap;
+	Compare          comp;
 };
 
-template < typename T >
-BinaryHeap<T>::BinaryHeap( size_t startingHeapSize )
+template < typename T, class Compare >
+BinaryHeap<T, Compare>::BinaryHeap( size_t startingHeapSize )
 {
 	heap.reserve( startingHeapSize );
 }
 
-template < typename T >
-BinaryHeap<T>::~BinaryHeap<T>() { }
+template < typename T, class Compare >
+BinaryHeap<T, Compare>::BinaryHeap( const std::vector< T >& initialElements ) :
+		BinaryHeap<T, std::greater<T>>( initialElements, std::greater<T>{} )
+{
 
-template < typename T >
-bool BinaryHeap<T>::Insert( const T& elem)
+}
+
+template < typename T, class Compare >
+BinaryHeap<T, Compare>::BinaryHeap(
+		const std::vector< T >& initialElements,
+		Compare comp ) :
+		heap( initialElements )
+{
+	std::make_heap( heap.begin(), heap.end(), comp );
+}
+
+template < typename T, class Compare >
+BinaryHeap<T, Compare>::~BinaryHeap<T, Compare>() { }
+
+template < typename T, class Compare >
+bool BinaryHeap<T, Compare>::Insert( const T& elem)
 {
 	heap.push_back( elem );
-	std::push_heap( heap.begin(), heap.end(), std::greater<>{} );
+	std::push_heap( heap.begin(), heap.end(), comp );
 	return true;
 }
 
-template < typename T >
-T BinaryHeap<T>::Pop()
+template < typename T, class Compare >
+T BinaryHeap<T, Compare>::Pop()
 {
 	if ( heap.empty() ) {
 		throw std::range_error( "Heap is empty" );
 	}
 
-	std::pop_heap( heap.begin(), heap.end(), std::greater<>{} );
+	std::pop_heap( heap.begin(), heap.end(), comp );
 
 	T res = heap.back();
 	heap.pop_back();
 	return res;
 }
 
-template < typename T >
-size_t BinaryHeap<T>::Size() const
+template < typename T, class Compare >
+size_t BinaryHeap<T, Compare>::Size() const
 {
 	return heap.size();
 }
 
-template < typename T >
-void BinaryHeap<T>::PrintArr() const
+template < typename T, class Compare >
+void BinaryHeap<T, Compare>::PrintArr() const
 {
 	printf( "[" );
 	bool first = true;

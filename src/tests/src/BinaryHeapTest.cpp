@@ -10,6 +10,9 @@ Test* BinaryHeapTest::Suite()
 	res->addTest( new TestCaller< BinaryHeapTest > (
 				"simpleTest",
 				&BinaryHeapTest::SimpleTest ) );
+	res->addTest( new TestCaller< BinaryHeapTest > (
+				"makeHeapTest",
+				&BinaryHeapTest::MakeHeapTest ) );
 	return res;
 }
 
@@ -26,6 +29,27 @@ void BinaryHeapTest::SimpleTest()
 	for ( int n : randArr ) {
 		heap.Insert( n );
 	}
+
+	CPPUNIT_ASSERT_EQUAL( (size_t) 20, heap.Size() );
+
+	for ( int i = 0; i < 20; i++ ) {
+		int n = heap.Pop();
+		CPPUNIT_ASSERT_EQUAL( i + 1, n );
+		CPPUNIT_ASSERT_EQUAL( (size_t) ( 20 - i - 1 ), heap.Size() );
+	}
+
+	CPPUNIT_ASSERT_EQUAL( (size_t) 0, heap.Size() );
+}
+
+void BinaryHeapTest::MakeHeapTest()
+{
+	std::vector< int > randArr;
+	for ( int i = 0; i < 20; i++ ) {
+		randArr.push_back( i+1 );
+	}
+	std::random_shuffle( randArr.begin(), randArr.end() );
+
+	BinaryHeap< int > heap( randArr );
 
 	CPPUNIT_ASSERT_EQUAL( (size_t) 20, heap.Size() );
 

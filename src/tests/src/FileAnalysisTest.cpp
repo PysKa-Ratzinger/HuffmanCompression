@@ -1,22 +1,22 @@
-#include "AnalysisInfoTest.hpp"
+#include "FileAnalysisTest.hpp"
 
-#include "HuffmanAlgorithm.hpp"
+#include "FileAnalysis.hpp"
 
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
 
-Test* AnalysisInfoTest::Suite()
+Test* FileAnalysisTest::Suite()
 {
-	TestSuite* res = new TestSuite( "AnalysisInfoTest" );
-	res->addTest( new TestCaller< AnalysisInfoTest > (
+	TestSuite* res = new TestSuite( "FileAnalysisTest" );
+	res->addTest( new TestCaller< FileAnalysisTest > (
 				"simpleTest",
-				&AnalysisInfoTest::SimpleTest ) );
+				&FileAnalysisTest::SimpleTest ) );
 	return res;
 }
 
-void AnalysisInfoTest::SimpleTest()
+void FileAnalysisTest::SimpleTest()
 {
 	const char* inputFileName = "/tmp/AnalysisInfoTestFile.txt";
 	int inputFile = open( inputFileName, O_WRONLY | O_TRUNC | O_CREAT );
@@ -27,8 +27,8 @@ void AnalysisInfoTest::SimpleTest()
 
 	inputFile = open( inputFileName, O_RDONLY );
 
-	// Load AnalysisInfo after reading file
-	struct AnalysisInfo info = AnalyseFile( inputFile );
+	// Load FileAnalysis after reading file
+	struct FileAnalysis info( inputFile );
 	close( inputFile );
 
 	unlink( inputFileName );

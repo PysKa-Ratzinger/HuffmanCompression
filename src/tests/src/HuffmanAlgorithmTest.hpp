@@ -2,15 +2,14 @@
 #include <cppunit/TestCaller.h>
 #include <cppunit/TestSuite.h>
 
-#include "cache/Cache.hpp"
-
 using namespace CppUnit;
 
-class CacheTest : public TestCase {
+class HuffmanAlgorithmTest : public TestCase
+{
 public:
-	static Test* suite();
+	static Test* Suite();
 
-	void simpleTest();
+	void SimpleTest();
 };
 
 
