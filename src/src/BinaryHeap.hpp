@@ -20,13 +20,13 @@ public:
 
 private:
 	std::vector< T > heap;
-	size_t           currSize;
 };
 
 template < typename T >
 BinaryHeap<T>::BinaryHeap( size_t startingHeapSize )
-		: heap( startingHeapSize )
-		, currSize( 0 ) { }
+{
+	heap.reserve( startingHeapSize );
+}
 
 template < typename T >
 BinaryHeap<T>::~BinaryHeap<T>() { }
@@ -34,24 +34,8 @@ BinaryHeap<T>::~BinaryHeap<T>() { }
 template < typename T >
 bool BinaryHeap<T>::Insert( const T& elem)
 {
-	if ( currSize < heap.size() ) {
-		heap[currSize] = elem;
-	} else {
-		heap.push_back( elem );
-	}
-	currSize++;
-
-	size_t pos = Size() - 1;
-	size_t topPos = (pos - 1) / 2;
-	while ( pos != 0 ) {
-		if ( heap[pos] < heap[topPos] ) {
-			std::swap( heap[topPos], heap[pos] );
-			pos = topPos;
-			topPos = (pos - 1) / 2;
-		} else {
-			break;
-		}
-	}
+	heap.push_back( elem );
+	std::push_heap( heap.begin(), heap.end(), std::greater<>{} );
 	return true;
 }
 
@@ -62,39 +46,17 @@ T BinaryHeap<T>::Pop()
 		throw std::range_error( "Heap is empty" );
 	}
 
-	T res = heap[0];
-	currSize--;
-	heap[0] = heap.at( currSize );
+	std::pop_heap( heap.begin(), heap.end(), std::greater<>{} );
 
-	size_t pos = 0;
-	while( true ){
-		size_t left = pos*2 + 1;
-		size_t right = left + 1;
-		size_t target;
-		if( right < Size() ) {
-			// Both children are present
-			target = heap[left] < heap[right] ? left : right;
-		} else if ( left < Size() ) {
-			// Only left child is present
-			target = left;
-		} else {
-			break;
-		}
-
-		if ( heap[target] < heap[pos] ) {
-			std::swap( heap[target], heap[pos] );
-			pos = target;
-		} else {
-			break;
-		}
-	}
+	T res = heap.back();
+	heap.pop_back();
 	return res;
 }
 
 template < typename T >
 size_t BinaryHeap<T>::Size() const
 {
-	return currSize;
+	return heap.size();
 }
 
 template < typename T >
