@@ -18,6 +18,13 @@ CharacterEncoding::~CharacterEncoding()
 
 }
 
+CharacterEncoding&
+CharacterEncoding::operator=( const CharacterEncoding& other )
+{
+	this->bytes = other.bytes;
+	return *this;
+}
+
 bool CharacterEncoding::GetBit( size_t index ) const
 {
 	return this->bytes.at( index );
@@ -45,10 +52,8 @@ void CharacterEncoding::RemoveBit()
 	}
 }
 
-CharacterEncoding&
-CharacterEncoding::operator=( const CharacterEncoding& other )
+bool CharacterEncoding::operator==( const CharacterEncoding& other ) const
 {
-	this->bytes = other.bytes;
-	return *this;
+	return bytes == other.bytes;
 }
 

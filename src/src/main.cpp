@@ -73,6 +73,12 @@ int main (int argc, char* argv[])
 
 	fprintf( stderr, "DONE\n" );
 
+	printf( "NOT YET IMPLEMENTED\n" );
+	return 0;
+
+	(void) option; // unused
+
+#if 0
 	int inFD = fileno( inputFile );
 	int outFD = fileno( outputFile );
 
@@ -101,5 +107,6 @@ int main (int argc, char* argv[])
 	fclose( inputFile );
 
 	return 0;
+#endif
 }
 

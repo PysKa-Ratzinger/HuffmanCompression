@@ -24,49 +24,28 @@
 	(byte & 0x02 ? '1' : '0'), \
 	(byte & 0x01 ? '1' : '0')
 
-HuffmanNode::HuffmanNode( unsigned long weight ) : weight( weight )
+void HuffmanLeafNode::PrintImpl( unsigned depth ) const
 {
-
+	for ( unsigned i = 0; i < depth; i++ ) {
+		printf(" | ");
+	}
+	printf( "\"%d\" - %lu\n", elem, Weight() );
 }
 
-unsigned long HuffmanNode::Weight() const
+void HuffmanLeafNode::EncodeBinaryImpl( BitStream& outStream ) const
 {
-	return weight;
+	outStream.WriteBit( 0 );
+	outStream.WriteNBits( &elem, sizeof(elem) * 8 );
 }
 
-bool HuffmanNode::operator < ( const HuffmanNode& node ) const
-{
-	return weight < node.weight;
-}
-
-HuffmanLeafNode::HuffmanLeafNode( unsigned long weight, unsigned char elem )
-	: HuffmanNode( weight )
-	, elem( elem )
-{
-
-}
-
-void HuffmanLeafNode::SaveEncoding(
+void HuffmanLeafNode::SaveEncodingImpl(
 		std::array< CharacterEncoding, 256>& arr,
 		CharacterEncoding& curr ) const
 {
 	arr[elem] = CharacterEncoding( curr );
 }
 
-HuffmanParentNode::HuffmanParentNode( HuffmanNodePtr left, HuffmanNodePtr right )
-	: HuffmanNode( left->Weight() + right->Weight() )
-	, left(left)
-	, right(right)
-{
-
-}
-
-HuffmanParentNode::~HuffmanParentNode()
-{
-
-}
-
-void HuffmanParentNode::SaveEncoding(
+void HuffmanParentNode::SaveEncodingImpl(
 		std::array< CharacterEncoding, 256>& arr,
 		CharacterEncoding& curr ) const
 {
@@ -78,7 +57,7 @@ void HuffmanParentNode::SaveEncoding(
 	curr.RemoveBit();
 }
 
-HuffmanTree::HuffmanTree( std::shared_ptr<const HuffmanNode> head )
+HuffmanTree::HuffmanTree( const IHuffmanNode::Ptr head )
 		: head( head )
 {
 	CharacterEncoding curr;
@@ -92,15 +71,7 @@ HuffmanTree::~HuffmanTree()
 
 }
 
-void HuffmanLeafNode::Print( unsigned const depth ) const
-{
-	for ( unsigned i = 0; i < depth; i++ ) {
-		printf(" | ");
-	}
-	printf( "\"%d\" - %lu\n", elem, Weight() );
-}
-
-void HuffmanParentNode::Print( unsigned const depth ) const
+void HuffmanParentNode::PrintImpl( unsigned const depth ) const
 {
 	left->Print( depth + 1 );
 	for ( unsigned i = 0; i < depth; i++ ) {
@@ -125,13 +96,7 @@ void HuffmanTree::Print() const
 	}
 }
 
-void HuffmanLeafNode::EncodeBinary( BitStream& outStream ) const
-{
-	outStream.WriteBit( 0 );
-	outStream.WriteNBits( &elem, sizeof(elem) * 8 );
-}
-
-void HuffmanParentNode::EncodeBinary( BitStream& outStream ) const
+void HuffmanParentNode::EncodeBinaryImpl( BitStream& outStream ) const
 {
 	outStream.WriteBit( 1 );
 	left->EncodeBinary( outStream );
@@ -153,6 +118,12 @@ void HuffmanTree::EncodeByte( BitStream& outStream , unsigned char byte ) const
 	}
 }
 
+const std::array< CharacterEncoding, 256 > HuffmanTree::GetEncoding() const
+{
+	return encoding;
+}
+
+#if 0
 bool HuffmanEncode( int inFD, int outFD )
 {
 	fprintf( stderr, "Started analysis... " );
@@ -164,6 +135,9 @@ bool HuffmanEncode( int inFD, int outFD )
 
 	fprintf( stderr, "DONE\n" );
 	fprintf( stderr, "Creating output bitstream... " );
+
+	// TODO: Create stringstream to file descriptor...?
+
 	BitStream outStream( outFD );
 
 	fprintf( stderr, "DONE\n" );
@@ -198,39 +172,24 @@ bool HuffmanDecode( int inFD, int outFD )
 
 	return true;
 }
-
-template < typename T >
-struct PointerGreater {
-	bool operator()(
-			const std::shared_ptr<T>& a,
-			const std::shared_ptr<T>& b ) const {
-		return a < b;
-	}
-};
+#endif
 
 HuffmanTree CreateHuffmanTree( const struct FileAnalysis& info )
 {
-	using HuffNodePtr = std::shared_ptr< HuffmanNode >;
-
-	std::vector< HuffNodePtr > elems;
+	std::vector< IHuffmanNode::Ptr > elems;
 
 	double sum = 0;
 	for ( unsigned i = 0; i < 0x100; i++ ) {
 		if ( info.frequency[i] > 0 ) {
 			unsigned long weight = info.frequency[i];
-			auto leaf = std::make_shared< HuffmanLeafNode >( weight, i );
+			auto leaf = std::make_shared<HuffmanLeafNode>( weight, i );
 			sum += weight;
 			elems.push_back( leaf );
 		}
 	}
 
-	for ( auto& p : elems ) {
-		p->Print(0);
-	}
-
 	// Create heap with character frequencies
-	BinaryHeap<HuffNodePtr, PointerGreater<HuffmanNode>> heap
-		( elems, PointerGreater<HuffmanNode>() );
+	BinaryHeap<IHuffmanNode::Ptr> heap ( elems );
 
 	// Keep joining the two largest frequencies under a parent node (whose
 	// frequency will be their sum), until only 1 node remains
@@ -240,12 +199,12 @@ HuffmanTree CreateHuffmanTree( const struct FileAnalysis& info )
 		heap.Insert( parent );
 	}
 
-	// Done?
-	std::shared_ptr< HuffmanNode > node( heap.Pop() );
+	// Done
+	IHuffmanNode::Ptr node( heap.Pop() );
 	return HuffmanTree( node );
 }
 
-static std::shared_ptr< HuffmanNode > ReadHuffmanNode( BitStream& inStream )
+static IHuffmanNode::Ptr ReadHuffmanNode( BitStream& inStream )
 {
 	unsigned char bit = inStream.ReadBit();
 	if ( bit == 0 ) {
@@ -253,15 +212,15 @@ static std::shared_ptr< HuffmanNode > ReadHuffmanNode( BitStream& inStream )
 		inStream.ReadNBits( &byte, 8 );
 		return std::make_shared< HuffmanLeafNode >( 0, byte );
 	} else {
-		std::shared_ptr< HuffmanNode > left = ReadHuffmanNode( inStream );
-		std::shared_ptr< HuffmanNode > right = ReadHuffmanNode( inStream );
+		IHuffmanNode::Ptr left = ReadHuffmanNode( inStream );
+		IHuffmanNode::Ptr right = ReadHuffmanNode( inStream );
 		return std::make_shared< HuffmanParentNode >( left, right );
 	}
 }
 
 HuffmanTree ReadHuffmanTree( BitStream& inStream )
 {
-	std::shared_ptr< HuffmanNode > head = ReadHuffmanNode( inStream );
+	IHuffmanNode::Ptr head = ReadHuffmanNode( inStream );
 	return HuffmanTree( head );
 }
 

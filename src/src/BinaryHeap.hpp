@@ -12,7 +12,6 @@ class BinaryHeap
 public:
 	BinaryHeap( size_t startingHeapSize );
 	BinaryHeap( const std::vector< T >& initialElements );
-	BinaryHeap( const std::vector< T >& initialElements, Compare comp );
 	~BinaryHeap();
 
 	size_t Size() const;
@@ -22,7 +21,6 @@ public:
 
 private:
 	std::vector< T > heap;
-	Compare          comp;
 };
 
 template < typename T, class Compare >
@@ -32,19 +30,10 @@ BinaryHeap<T, Compare>::BinaryHeap( size_t startingHeapSize )
 }
 
 template < typename T, class Compare >
-BinaryHeap<T, Compare>::BinaryHeap( const std::vector< T >& initialElements ) :
-		BinaryHeap<T, std::greater<T>>( initialElements, std::greater<T>{} )
+BinaryHeap<T, Compare>::BinaryHeap( const std::vector< T >& initialElements )
+		: heap( initialElements )
 {
-
-}
-
-template < typename T, class Compare >
-BinaryHeap<T, Compare>::BinaryHeap(
-		const std::vector< T >& initialElements,
-		Compare comp ) :
-		heap( initialElements )
-{
-	std::make_heap( heap.begin(), heap.end(), comp );
+	std::make_heap( heap.begin(), heap.end(), Compare{} );
 }
 
 template < typename T, class Compare >
@@ -54,7 +43,7 @@ template < typename T, class Compare >
 bool BinaryHeap<T, Compare>::Insert( const T& elem)
 {
 	heap.push_back( elem );
-	std::push_heap( heap.begin(), heap.end(), comp );
+	std::push_heap( heap.begin(), heap.end(), Compare{} );
 	return true;
 }
 
@@ -65,7 +54,7 @@ T BinaryHeap<T, Compare>::Pop()
 		throw std::range_error( "Heap is empty" );
 	}
 
-	std::pop_heap( heap.begin(), heap.end(), comp );
+	std::pop_heap( heap.begin(), heap.end(), Compare{} );
 
 	T res = heap.back();
 	heap.pop_back();

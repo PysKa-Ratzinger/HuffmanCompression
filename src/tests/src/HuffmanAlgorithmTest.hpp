@@ -9,7 +9,10 @@ class HuffmanAlgorithmTest : public TestCase
 public:
 	static Test* Suite();
 
-	void SimpleTest();
+	void FrequencyAnalysisTest();
+
+	void LeafEncodeBinaryTest();
+	void ParentEncodeBinaryTest();
 };
 
 

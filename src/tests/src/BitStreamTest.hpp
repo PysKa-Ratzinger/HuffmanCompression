@@ -9,7 +9,10 @@ class BitStreamTest : public TestCase
 public:
 	static Test* Suite();
 
-	void WriteTest();
+	void WriteBitTest();
+	void WriteBitsTest();
+	void MixedWriteTest();
+
 	void ReadTest();
 };
 

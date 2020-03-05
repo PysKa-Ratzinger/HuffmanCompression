@@ -2,9 +2,11 @@
 
 #include <unistd.h>
 
-BitStream::BitStream( int fd )
-		: fd( fd )
+BitStream::BitStream( std::stringstream& oss )
+		: oss( oss )
+		, charInBuffer( 0 )
 		, charOutBuffer( 0 )
+		, charInBufferSize( 0 )
 		, charOutBufferSize( 0 )
 {
 
@@ -42,7 +44,7 @@ void BitStream::WriteBit( bool bit )
 bool BitStream::ReadBit()
 {
 	if ( charInBufferSize == 0 ) {
-		read( fd, &charInBuffer, 1 );
+		oss >> charInBuffer;
 		charInBufferSize = 8;
 	}
 	unsigned char res = charInBuffer & 0x80;
@@ -71,7 +73,7 @@ void BitStream::Flush()
 {
 	if ( charOutBufferSize > 0 ) {
 		charOutBuffer <<= ( 8 - charOutBufferSize );
-		write( fd, &charOutBuffer, 1 );
+		oss << charOutBuffer;
 		charOutBufferSize = 0;
 	}
 }

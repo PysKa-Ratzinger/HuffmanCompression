@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <sstream>
 
 /*
 =============================================
@@ -28,7 +29,7 @@ structure. The FIRST bit written will be the FIRST bit read.
  */
 class BitStream{
 public:
-	BitStream( int fd );
+	BitStream( std::stringstream& oss );
 
 	void          WriteNBits( const unsigned char* buffer, size_t numBits );
 	void          WriteBit( bool bit );
@@ -37,10 +38,10 @@ public:
 	void          Flush();
 
 private:
-	int       fd;
-	uint8_t   charInBuffer;
-	uint8_t   charOutBuffer;
-	size_t    charInBufferSize;
-	size_t    charOutBufferSize;
+	std::stringstream&  oss;
+	uint8_t             charInBuffer;
+	uint8_t             charOutBuffer;
+	size_t              charInBufferSize;
+	size_t              charOutBufferSize;
 };
 
