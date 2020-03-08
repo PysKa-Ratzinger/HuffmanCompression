@@ -13,6 +13,8 @@ public:
 
 	void LeafEncodeBinaryTest();
 	void ParentEncodeBinaryTest();
+
+	void HuffmanTreeEncodingTest();
 };
 
 

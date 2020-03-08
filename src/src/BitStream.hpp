@@ -34,8 +34,21 @@ public:
 	void          WriteNBits( const unsigned char* buffer, size_t numBits );
 	void          WriteBit( bool bit );
 	bool          ReadBit();
-	void          ReadNBits( unsigned char* buffer, size_t numBits );
+	size_t        ReadNBits( unsigned char* buffer, size_t numBits );
 	void          Flush();
+
+	void WriteNBits( const char* buffer, size_t numBits ) {
+		return WriteNBits( (const unsigned char*) buffer, numBits );
+	}
+
+	void WriteNBits( const std::string& result ) {
+		return WriteNBits( (const unsigned char*) result.c_str(),
+				result.size() * 8 );
+	}
+
+	size_t ReadNBits( char* buffer, size_t numBits ) {
+		return ReadNBits( (unsigned char*) buffer, numBits );
+	}
 
 private:
 	std::stringstream&  oss;

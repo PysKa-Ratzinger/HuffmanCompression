@@ -19,7 +19,9 @@ Test* FileAnalysisTest::Suite()
 void FileAnalysisTest::SimpleTest()
 {
 	const char* inputFileName = "/tmp/AnalysisInfoTestFile.txt";
-	int inputFile = open( inputFileName, O_WRONLY | O_TRUNC | O_CREAT );
+
+	mode_t mode = S_IRUSR | S_IWUSR;
+	int inputFile = open( inputFileName, O_RDWR | O_TRUNC | O_CREAT, mode );
 
 	const char* fileContents = "aaaaaaaabbbbccdefghijklmnopqrstuvwxyz";
 	write( inputFile, fileContents, strlen( fileContents ) );

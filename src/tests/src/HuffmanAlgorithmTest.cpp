@@ -5,6 +5,10 @@
 
 #include <algorithm>
 
+#include <fcntl.h>
+#include <string.h>
+#include <unistd.h>
+
 Test* HuffmanAlgorithmTest::Suite()
 {
 	TestSuite* res = new TestSuite( "HuffmanAlgorithmTest" );
@@ -17,6 +21,9 @@ Test* HuffmanAlgorithmTest::Suite()
 	res->addTest( new TestCaller< HuffmanAlgorithmTest > (
 				"ParentEncodeBinaryTest",
 				&HuffmanAlgorithmTest::ParentEncodeBinaryTest ) );
+	res->addTest( new TestCaller< HuffmanAlgorithmTest > (
+				"HuffmanTreeEncodingTest",
+				&HuffmanAlgorithmTest::HuffmanTreeEncodingTest ) );
 	return res;
 }
 
@@ -62,16 +69,72 @@ void HuffmanAlgorithmTest::LeafEncodeBinaryTest()
 	// Leaf node encoding
 	CPPUNIT_ASSERT_EQUAL( (bool) 0, stream2.ReadBit() );
 
-	// 'A' == 0x41 == 0b0010 0001
-	for ( bool b : {0, 0, 1, 0, 0, 0, 0, 1} ) {
-		// CPPUNIT_ASSERT_EQUAL( b, stream.ReadBit() );
-		(void) b;
-		printf( "Bit: %s\n", stream2.ReadBit() ? "1" : "0" );
+	// 'A' == 0x41 == 0b0100 0001
+	for ( bool b : {0, 1, 0, 0, 0, 0, 0, 1} ) {
+		CPPUNIT_ASSERT_EQUAL( b, stream2.ReadBit() );
 	}
 }
 
 void HuffmanAlgorithmTest::ParentEncodeBinaryTest()
 {
+	std::stringstream ss;
+
+	auto node1 = std::make_shared< HuffmanLeafNode >( 5, 'A' );
+	auto node2 = std::make_shared< HuffmanLeafNode >( 6, 'B' );
+	HuffmanParentNode pnode( node1, node2 );
+
+	{
+		BitStream b( ss );
+		pnode.EncodeBinary( b );
+		b.Flush();
+	}
+
+	BitStream b2( ss );
+
+	// Parent node encoding
+	CPPUNIT_ASSERT_EQUAL( (bool) 1, b2.ReadBit() );
+
+	// Leaf node encoding
+	CPPUNIT_ASSERT_EQUAL( (bool) 0, b2.ReadBit() );
+	// 'A' == 0x41 == 0b0100 0001
+	for ( bool b : {0, 1, 0, 0, 0, 0, 0, 1} ) {
+		CPPUNIT_ASSERT_EQUAL( b, b2.ReadBit() );
+	}
+
+	// Leaf node encoding
+	CPPUNIT_ASSERT_EQUAL( (bool) 0, b2.ReadBit() );
+	// 'B' == 0x42 == 0b0100 0010
+	for ( bool b : {0, 1, 0, 0, 0, 0, 1, 0} ) {
+		CPPUNIT_ASSERT_EQUAL( b, b2.ReadBit() );
+	}
+}
+
+void HuffmanAlgorithmTest::HuffmanTreeEncodingTest()
+{
 	CPPUNIT_ASSERT( false );
+
+#if 0
+	const char* inputFileName = "/tmp/AnalysisInfoTestFile.txt";
+
+	mode_t mode = S_IRUSR | S_IWUSR;
+	int inputFile = open( inputFileName, O_RDWR | O_TRUNC | O_CREAT, mode );
+
+	const char* fileContents = "The big brown wolf, jumped over and fell";
+	write( inputFile, fileContents, strlen( fileContents ) );
+	close( inputFile );
+
+	inputFile = open( inputFileName, O_RDONLY );
+
+	// Load FileAnalysis after reading file
+	struct FileAnalysis info( inputFile );
+	close( inputFile );
+
+	HuffmanTree tree = CreateHuffmanTree( info );
+
+	std::stringstream ss;
+	BitStream b( ss );
+
+	tree.EncodeBinary( b );
+#endif
 }
 

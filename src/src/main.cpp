@@ -4,9 +4,9 @@
 #include "BitStream.hpp"
 #include "BinaryHeap.hpp"
 
-#define BUFFER_SZ 512
+#define BUFFER_SZ 1024
 
-#define COMPRESS 1
+#define COMPRESS 3
 #define DECOMPRESS 2
 
 int main (int argc, char* argv[])
