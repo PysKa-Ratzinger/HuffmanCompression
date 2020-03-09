@@ -1,6 +1,6 @@
 #include "HuffmanAlgorithmTest.hpp"
 
-#include "HuffmanAlgorithm.hpp"
+#include "HuffmanEncoding.hpp"
 #include "FileAnalysis.hpp"
 
 #include <algorithm>
@@ -8,6 +8,8 @@
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
+
+using namespace huffman;
 
 Test* HuffmanAlgorithmTest::Suite()
 {
@@ -38,7 +40,7 @@ void HuffmanAlgorithmTest::FrequencyAnalysisTest()
 	freqs[4] = 4;
 
 	FileAnalysis info( freqs );
-	HuffmanTree tree = CreateHuffmanTree( info );
+	Tree tree = Tree::CreateNewTree( info );
 
 	std::array< CharacterEncoding, 256 > expectedValues;
 
@@ -58,8 +60,9 @@ void HuffmanAlgorithmTest::FrequencyAnalysisTest()
 void HuffmanAlgorithmTest::LeafEncodeBinaryTest()
 {
 	std::stringstream ss;
+	bool bit;
 
-	HuffmanLeafNode node( 5, 'A' );
+	LeafNode node( 5, 'A' );
 	BitStream stream( ss );
 	node.EncodeBinaryImpl( stream );
 	stream.Flush();
@@ -67,21 +70,22 @@ void HuffmanAlgorithmTest::LeafEncodeBinaryTest()
 	BitStream stream2( ss );
 
 	// Leaf node encoding
-	CPPUNIT_ASSERT_EQUAL( (bool) 0, stream2.ReadBit() );
+	CPPUNIT_ASSERT_EQUAL( (bool) 0, stream2.ReadBit( bit ) && bit );
 
 	// 'A' == 0x41 == 0b0100 0001
 	for ( bool b : {0, 1, 0, 0, 0, 0, 0, 1} ) {
-		CPPUNIT_ASSERT_EQUAL( b, stream2.ReadBit() );
+		CPPUNIT_ASSERT_EQUAL( b, stream2.ReadBit( bit ) && bit );
 	}
 }
 
 void HuffmanAlgorithmTest::ParentEncodeBinaryTest()
 {
 	std::stringstream ss;
+	bool bit;
 
-	auto node1 = std::make_shared< HuffmanLeafNode >( 5, 'A' );
-	auto node2 = std::make_shared< HuffmanLeafNode >( 6, 'B' );
-	HuffmanParentNode pnode( node1, node2 );
+	auto node1 = std::make_shared< LeafNode >( 5, 'A' );
+	auto node2 = std::make_shared< LeafNode >( 6, 'B' );
+	ParentNode pnode( node1, node2 );
 
 	{
 		BitStream b( ss );
@@ -92,49 +96,46 @@ void HuffmanAlgorithmTest::ParentEncodeBinaryTest()
 	BitStream b2( ss );
 
 	// Parent node encoding
-	CPPUNIT_ASSERT_EQUAL( (bool) 1, b2.ReadBit() );
+	CPPUNIT_ASSERT_EQUAL( (bool) 1, b2.ReadBit( bit ) && bit );
 
 	// Leaf node encoding
-	CPPUNIT_ASSERT_EQUAL( (bool) 0, b2.ReadBit() );
+	CPPUNIT_ASSERT_EQUAL( (bool) 0, b2.ReadBit( bit ) && bit );
 	// 'A' == 0x41 == 0b0100 0001
 	for ( bool b : {0, 1, 0, 0, 0, 0, 0, 1} ) {
-		CPPUNIT_ASSERT_EQUAL( b, b2.ReadBit() );
+		CPPUNIT_ASSERT_EQUAL( b, b2.ReadBit( bit ) && bit );
 	}
 
 	// Leaf node encoding
-	CPPUNIT_ASSERT_EQUAL( (bool) 0, b2.ReadBit() );
+	CPPUNIT_ASSERT_EQUAL( (bool) 0, b2.ReadBit( bit ) && bit );
 	// 'B' == 0x42 == 0b0100 0010
 	for ( bool b : {0, 1, 0, 0, 0, 0, 1, 0} ) {
-		CPPUNIT_ASSERT_EQUAL( b, b2.ReadBit() );
+		CPPUNIT_ASSERT_EQUAL( b, b2.ReadBit( bit ) && bit );
 	}
 }
 
 void HuffmanAlgorithmTest::HuffmanTreeEncodingTest()
 {
-	CPPUNIT_ASSERT( false );
-
-#if 0
-	const char* inputFileName = "/tmp/AnalysisInfoTestFile.txt";
-
-	mode_t mode = S_IRUSR | S_IWUSR;
-	int inputFile = open( inputFileName, O_RDWR | O_TRUNC | O_CREAT, mode );
-
-	const char* fileContents = "The big brown wolf, jumped over and fell";
-	write( inputFile, fileContents, strlen( fileContents ) );
-	close( inputFile );
-
-	inputFile = open( inputFileName, O_RDONLY );
+	std::stringstream ss;
+	const char* fileContents = "AAAABBCC";
 
 	// Load FileAnalysis after reading file
-	struct FileAnalysis info( inputFile );
-	close( inputFile );
+	struct FileAnalysis info;
+	info.FeedText( fileContents, strlen( fileContents ) );
 
-	HuffmanTree tree = CreateHuffmanTree( info );
+	Tree tree1 = Tree::CreateNewTree( info );
 
-	std::stringstream ss;
+	printf( "\n" );
+	tree1.Print();
+
+	{
+		BitStream b( ss );
+		tree1.EncodeBinary( b );
+		b.Flush();
+	}
+
 	BitStream b( ss );
+	Tree tree2 = Tree::LoadTree( b );
 
-	tree.EncodeBinary( b );
-#endif
+	CPPUNIT_ASSERT( tree1 == tree2 );
 }
 

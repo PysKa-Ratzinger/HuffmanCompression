@@ -33,7 +33,7 @@ public:
 
 	void          WriteNBits( const unsigned char* buffer, size_t numBits );
 	void          WriteBit( bool bit );
-	bool          ReadBit();
+	bool          ReadBit( bool& bit );
 	size_t        ReadNBits( unsigned char* buffer, size_t numBits );
 	void          Flush();
 

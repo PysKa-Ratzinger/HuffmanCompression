@@ -8,17 +8,20 @@
 #include "CharacterEncoding.hpp"
 #include "FileAnalysis.hpp"
 
+namespace huffman
+{
+
 /*
 ================================
-HuffmanNode interface
+Node interface
 ================================
  */
-class IHuffmanNode
+class INode
 {
 public:
-	using Ptr = std::shared_ptr< IHuffmanNode >;
+	using Ptr = std::shared_ptr< INode >;
 
-	virtual ~IHuffmanNode() {}
+	virtual ~INode() {}
 
 	virtual uint64_t Weight() const = 0;
 	virtual void     Print( unsigned depth ) const = 0;
@@ -27,24 +30,12 @@ public:
 			std::array< CharacterEncoding, 256>& arr,
 			CharacterEncoding& curr ) const = 0;
 
-	bool operator < ( const IHuffmanNode& other ) const
+	bool operator < ( const INode& other ) const
 	{
 		return Weight() < other.Weight();
 	}
-};
 
-// Specialization of std::greator< IHuffmanNode::Ptr >
-template <>
-struct std::greater< IHuffmanNode::Ptr >
-{
-	bool operator() ( const IHuffmanNode::Ptr a, const IHuffmanNode::Ptr b ) {
-		if ( a && b ) {
-			return *b < *a;
-		}
-		return b < a;
-
-		// return a && b ? *b < *a : b < a;   // Not even readable
-	}
+	virtual bool operator==( const INode& other ) const;
 };
 
 /*
@@ -54,12 +45,12 @@ base class represent the Leaf Node and the Parent Node.
 ================================
  */
 template < class Deriv >
-class HuffmanNode : public IHuffmanNode
+class Node : public INode
 {
 public:
-	HuffmanNode( unsigned long weight ) : weight( weight ) { }
+	Node( unsigned long weight ) : weight( weight ) { }
 
-	virtual ~HuffmanNode() {}
+	virtual ~Node() {}
 
 	unsigned long Weight() const override {
 		return weight;
@@ -78,6 +69,11 @@ public:
 		static_cast<const Deriv&>(*this).SaveEncodingImpl( arr, curr );
 	}
 
+	bool operator==( const INode& other ) const override {
+		const Deriv* o = dynamic_cast<const Deriv*>(&other);
+		return o != nullptr && static_cast<const Deriv&>(*this).equals(*o);
+	}
+
 private:
 	unsigned long weight;
 };
@@ -88,22 +84,24 @@ Leaf node from a Huffman tree. Represents a node with no childs,
 but a value.
 ================================
  */
-class HuffmanLeafNode : public HuffmanNode< HuffmanLeafNode >
+class LeafNode : public Node< LeafNode >
 {
 public:
-	HuffmanLeafNode( unsigned long weight, unsigned char elem )
-			: HuffmanNode< HuffmanLeafNode >( weight )
+	LeafNode( unsigned long weight, unsigned char elem )
+			: Node< LeafNode >( weight )
 			, elem( elem )
 	{
 
 	}
 
-	~HuffmanLeafNode() { }
+	~LeafNode() { }
 
 	void PrintImpl( unsigned depth ) const;
 	void EncodeBinaryImpl( BitStream& outStream ) const;
 	void SaveEncodingImpl( std::array< CharacterEncoding, 256>& arr,
 			CharacterEncoding& curr ) const;
+
+	bool equals( const LeafNode& other ) const;
 
 private:
 	unsigned char elem;
@@ -115,27 +113,29 @@ Parent node from a Huffman tree. Represents a node with no value but
 two children.
 ================================
  */
-class HuffmanParentNode : public HuffmanNode< HuffmanParentNode >
+class ParentNode : public Node< ParentNode >
 {
 public:
-	HuffmanParentNode( IHuffmanNode::Ptr left, IHuffmanNode::Ptr right )
-			: HuffmanNode< HuffmanParentNode >( left->Weight() + right->Weight() )
+	ParentNode( INode::Ptr left, INode::Ptr right )
+			: Node< ParentNode >( left->Weight() + right->Weight() )
 			, left(left)
 			, right(right)
 	{
 
 	}
 
-	~HuffmanParentNode() { }
+	~ParentNode() { }
 
 	void PrintImpl( unsigned depth ) const;
 	void EncodeBinaryImpl( BitStream& outStream ) const;
 	void SaveEncodingImpl( std::array< CharacterEncoding, 256>& arr,
 			CharacterEncoding& curr ) const;
 
+	bool equals( const ParentNode& other ) const;
+
 private:
-	IHuffmanNode::Ptr left;
-	IHuffmanNode::Ptr right;
+	INode::Ptr left;
+	INode::Ptr right;
 };
 
 /*
@@ -144,45 +144,51 @@ Huffman tree. Contains every information necessary in order to encode and
 decode information
 ================================
  */
-class HuffmanTree
+class Tree
 {
 public:
-	HuffmanTree( const std::shared_ptr<IHuffmanNode> head );
-	~HuffmanTree();
+	Tree( const std::shared_ptr<INode> head );
+	~Tree();
 
-	void Print() const;
+	static Tree CreateNewTree( const struct FileAnalysis& info );
 
 	/*
 	 * Outputs the Huffman Encoding tree in a binary form
 	 */
-	void EncodeBinary( BitStream& outStream ) const;
+	void        EncodeBinary( BitStream& outStream ) const;
 
 	/*
 	 * Given a byte, whose encoding we know, output it's binary correspondent
 	 */
-	void EncodeByte( BitStream& outStream, unsigned char byte ) const;
+	void        EncodeByte( BitStream& outStream, unsigned char byte ) const;
+
+	static Tree LoadTree( BitStream& inStream );
+	void        Print() const;
 
 	const std::array< CharacterEncoding, 256 > GetEncoding() const;
 
+	bool operator==( const Tree& other ) const;
+
 protected:
-	std::shared_ptr< const IHuffmanNode >   head;
+	std::shared_ptr< const INode >   head;
 	std::array< CharacterEncoding, 256 >    encoding;
 };
 
-#if 0
-bool HuffmanEncode( int inFD, int outFD );
-bool HuffmanDecode( int inFD, int outFD );
-#endif
+}
 
-/**
- * Given the analysis information of a file, a huffman tree is generated.
- * @param  info Analysis info of a file that was analysed
- * @return      Pointer to a new huffman_tree structure
- */
-HuffmanTree CreateHuffmanTree( const struct FileAnalysis& info );
+using namespace huffman;
 
-/**
- * Given an input stream, reads the encoded huffman tree
- */
-HuffmanTree ReadHuffmanTree( BitStream& inStream );
+// Specialization of std::greator< INode::Ptr >
+template <>
+struct std::greater< INode::Ptr >
+{
+	bool operator() ( const INode::Ptr a, const INode::Ptr b ) {
+		if ( a && b ) {
+			return *b < *a;
+		}
+		return b < a;
+
+		// return a && b ? *b < *a : b < a;   // Not even readable
+	}
+};
 

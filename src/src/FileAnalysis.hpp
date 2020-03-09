@@ -16,11 +16,13 @@ found in the analysed file
 struct FileAnalysis
 {
 	/**
-	 * Constructor given a file descriptor
+	 * Default constructor
 	 */
-	FileAnalysis( int fd );
+	FileAnalysis();
 
 	FileAnalysis( std::array< size_t, TOTAL_CHARS > predeterminedFreqs );
+
+	void FeedText( const char* msg, size_t msgSize );
 
 	/**
 	 * Array with the frequency of every byte. The index of each frequency

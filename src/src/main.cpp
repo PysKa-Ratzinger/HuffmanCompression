@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include "HuffmanAlgorithm.hpp"
+#include "HuffmanEncoding.hpp"
 #include "BitStream.hpp"
 #include "BinaryHeap.hpp"
 
@@ -13,6 +13,9 @@ int main (int argc, char* argv[])
 {
 	(void) argc;
 	(void) argv;
+
+	printf( "NOT YET IMPLEMENTED\n" );
+	return 0;
 
 	char buffer[BUFFER_SZ];
 

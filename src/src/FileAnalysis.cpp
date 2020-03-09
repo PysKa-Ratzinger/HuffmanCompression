@@ -4,19 +4,16 @@
 
 #define BUFFER_SZ 256
 
-FileAnalysis::FileAnalysis( int inFD )
+FileAnalysis::FileAnalysis( ) { }
+
+void
+FileAnalysis::FeedText( const char* msg, size_t msgSize )
 {
-	uint8_t buffer[BUFFER_SZ];
-	ssize_t bytes_read = 0;
-	while ( ( bytes_read = read( inFD, buffer, BUFFER_SZ ) ) > 0 ) {
-		for ( ssize_t i = 0; i < bytes_read; i++ ) {
-			frequency[ buffer[i] ]++;
-		}
+	for ( size_t i = 0; i < msgSize; i++ ) {
+		frequency[ msg[i] ]++;
 	}
 
-	for ( size_t n : frequency ) {
-		total += n;
-	}
+	total += msgSize;
 }
 
 FileAnalysis::FileAnalysis(

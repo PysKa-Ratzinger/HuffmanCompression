@@ -78,17 +78,19 @@ void BitStreamTest::MixedWriteTest()
 
 	BitStream b2( ss );
 
-	CPPUNIT_ASSERT_EQUAL( true, b2.ReadBit() );
+	bool bit;
+	CPPUNIT_ASSERT_EQUAL( true, b2.ReadBit( bit ) );
+	CPPUNIT_ASSERT_EQUAL( true, bit );
 
 	char buffer[ 64 ];
 	b2.ReadNBits( buffer, testString.size() * 8 );
 	CPPUNIT_ASSERT_EQUAL( testString, std::string( buffer ) );
 
-	CPPUNIT_ASSERT_EQUAL( true, b2.ReadBit() );
-	CPPUNIT_ASSERT_EQUAL( true, b2.ReadBit() );
-	CPPUNIT_ASSERT_EQUAL( false, b2.ReadBit() );
-	CPPUNIT_ASSERT_EQUAL( false, b2.ReadBit() );
-	CPPUNIT_ASSERT_EQUAL( true, b2.ReadBit() );
+	CPPUNIT_ASSERT_EQUAL( true, b2.ReadBit( bit ) && bit );
+	CPPUNIT_ASSERT_EQUAL( true, b2.ReadBit( bit ) && bit );
+	CPPUNIT_ASSERT_EQUAL( false, b2.ReadBit( bit ) && bit );
+	CPPUNIT_ASSERT_EQUAL( false, b2.ReadBit( bit ) && bit );
+	CPPUNIT_ASSERT_EQUAL( true, b2.ReadBit( bit ) && bit );
 
 }
 
@@ -101,7 +103,8 @@ void BitStreamTest::ReadTest()
 	BitStream b ( ss );
 
 	for ( int i = 0; i < 8; i++ ) {
-		bool bit = b.ReadBit();
+		bool bit;
+		CPPUNIT_ASSERT_EQUAL( true, b.ReadBit( bit ) );
 		CPPUNIT_ASSERT_EQUAL( bit, i % 2 == 0 );
 	}
 }

@@ -45,41 +45,47 @@ void BitStream::WriteBit( bool bit )
 	}
 }
 
-bool BitStream::ReadBit()
+bool BitStream::ReadBit( bool& bit )
 {
 	if ( charInBufferSize == 0 ) {
 		int c = oss.get();
 		if ( c == EOF ) {
-			throw std::runtime_error( "EOF" );
+			return false;
 		}
 		charInBuffer = c;
 		charInBufferSize = 8;
 	}
 
-	unsigned char res = charInBuffer & 0x80;
+	bit = charInBuffer & 0x80;
 	charInBuffer <<= 1;
 	charInBufferSize--;
-	return res;
+	return true;
 }
 
 size_t BitStream::ReadNBits( unsigned char* buffer, size_t numBits )
 {
 	size_t bitsRead = 0;
+	bool bit;
 
+	// TODO: Optimize this code
 	while ( numBits >= 8 ) {
 		*buffer = '\0';
 		for ( size_t i = 0; i < 8; i++ ) {
-			bool bit = this->ReadBit();
+			if ( ! this->ReadBit( bit ) ) {
+				return bitsRead;
+			}
 			*buffer |= ( static_cast<unsigned char>( bit ) << ( 7 - i ) );
+			bitsRead++;
+			numBits--;
 		}
 		buffer++;
-		numBits -= 8;
-		bitsRead += 8;
 	}
 
 	*buffer = '\0';
 	for ( size_t i = 0; i < numBits; i++ ) {
-		bool bit = this->ReadBit();
+		if ( ! this->ReadBit( bit ) ) {
+			return bitsRead;
+		}
 		*buffer |= ( bit << ( 7 - i ) );
 		bitsRead++;
 	}

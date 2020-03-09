@@ -18,22 +18,12 @@ Test* FileAnalysisTest::Suite()
 
 void FileAnalysisTest::SimpleTest()
 {
-	const char* inputFileName = "/tmp/AnalysisInfoTestFile.txt";
-
-	mode_t mode = S_IRUSR | S_IWUSR;
-	int inputFile = open( inputFileName, O_RDWR | O_TRUNC | O_CREAT, mode );
-
 	const char* fileContents = "aaaaaaaabbbbccdefghijklmnopqrstuvwxyz";
-	write( inputFile, fileContents, strlen( fileContents ) );
-	close( inputFile );
-
-	inputFile = open( inputFileName, O_RDONLY );
 
 	// Load FileAnalysis after reading file
-	struct FileAnalysis info( inputFile );
-	close( inputFile );
+	struct FileAnalysis info;
 
-	unlink( inputFileName );
+	info.FeedText( fileContents, strlen( fileContents ) );
 
 	unsigned long expectedFrequencies[256] { 0 };
 	expectedFrequencies[(int)'a'] = 8;
