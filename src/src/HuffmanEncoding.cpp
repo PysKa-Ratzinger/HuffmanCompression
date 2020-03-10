@@ -35,11 +35,12 @@ LeafNode::PrintImpl( unsigned depth ) const
 	printf( "\"%d\" - %lu\n", elem, Weight() );
 }
 
-void
-LeafNode::EncodeBinaryImpl( BitStream& outStream ) const
+size_t
+LeafNode::PersistImpl( BitStream& outStream ) const
 {
 	outStream.WriteBit( 0 );
 	outStream.WriteNBits( &elem, sizeof(elem) * 8 );
+	return sizeof(elem) * 8 + 1;
 }
 
 void
@@ -51,7 +52,7 @@ LeafNode::SaveEncodingImpl(
 }
 
 bool
-LeafNode::equals( const LeafNode& other ) const
+LeafNode::operator==( const LeafNode& other ) const
 {
 	return this->elem == other.elem;
 }
@@ -93,7 +94,7 @@ ReadHuffmanNode( BitStream& inStream )
 	}
 
 	if ( bit == 0 ) {
-		unsigned char byte;
+		uint8_t byte;
 		inStream.ReadNBits( &byte, 8 );
 		return std::make_shared< LeafNode >( 0, byte );
 	} else {
@@ -128,45 +129,67 @@ Tree::Print() const
 	for ( unsigned i = 0; i < 256; i++ ) {
 		const CharacterEncoding& c = encoding.at( i );
 		if ( ! c.IsEmpty() ) {
-			printf( "Encoding for %d is: ", i );
-			for ( unsigned j = 0; j < c.GetBitSize(); j++ ) {
-				printf( "%d", c.GetBit( j ) );
+			printf( "Encoding for 0x%02x ( %c ) is: ", i, (char) i );
+			for ( unsigned j = 0; j < c.GetNumBits(); j++ ) {
+				printf( "%d", (int) c.GetBit( j ) );
 			}
 			printf( "\n" );
 		}
 	}
 }
 
-void
-ParentNode::EncodeBinaryImpl( BitStream& outStream ) const
+size_t
+ParentNode::PersistImpl( BitStream& outStream ) const
 {
+	size_t nBytes = 1;
 	outStream.WriteBit( 1 );
-	left->EncodeBinary( outStream );
-	right->EncodeBinary( outStream );
+	nBytes += left->Persist( outStream );
+	nBytes += right->Persist( outStream );
+	return nBytes;
 }
 
 bool
-ParentNode::equals( const ParentNode& other ) const
+ParentNode::operator==( const ParentNode& other ) const
 {
 	return *this->left == *other.left &&
 		*this->right == *other.right;
 }
 
-void
-Tree::EncodeBinary( BitStream& outStream ) const
+size_t
+Tree::Persist( BitStream& outStream ) const
 {
 	if ( head ) {
-		head->EncodeBinary( outStream );
+		return head->Persist( outStream );
 	}
+	return 0;
 }
 
 void
-Tree::EncodeByte( BitStream& outStream , unsigned char byte ) const
+Tree::EncodeByte( BitStream& outStream , uint8_t byte ) const
 {
 	const CharacterEncoding& currEncoding = encoding[byte];
-	for ( unsigned i = 0; i < currEncoding.GetBitSize(); i++ ) {
-		outStream.WriteBit( currEncoding.GetBit( i ) );
+	outStream.WriteNBits( currEncoding.GetRaw(), currEncoding.GetNumBits() );
+}
+
+uint8_t Tree::DecodeByte( BitStream& inStream ) const
+{
+	INode::ConstPtr curr = this->head;
+
+	bool bit;
+	while ( ! curr->IsLeaf() && inStream.ReadBit( bit ) ) {
+		if ( bit ) {
+			curr = curr->GetRightChild();
+		} else {
+			curr = curr->GetLeftChild();
+		}
 	}
+
+	if ( ! curr->IsLeaf() ) {
+		throw std::logic_error( "Encoding does not map to any character "
+				"encoding" );
+	}
+
+	return curr->GetElem();
 }
 
 const

@@ -3,7 +3,8 @@
 #include "BinaryHeapTest.hpp"
 #include "BitStreamTest.hpp"
 #include "FileAnalysisTest.hpp"
-#include "HuffmanAlgorithmTest.hpp"
+#include "HuffmanEncodingTest.hpp"
+#include "CharacterEncodingTest.hpp"
 
 int main () {
 	CppUnit::TextUi::TestRunner runner;
@@ -11,7 +12,8 @@ int main () {
 	runner.addTest( BinaryHeapTest::Suite() );
 	runner.addTest( BitStreamTest::Suite() );
 	runner.addTest( FileAnalysisTest::Suite() );
-	runner.addTest( HuffmanAlgorithmTest::Suite() );
+	runner.addTest( HuffmanEncodingTest::Suite() );
+	runner.addTest( CharacterEncodingTest::Suite() );
 
 	runner.run();
 	return 0;

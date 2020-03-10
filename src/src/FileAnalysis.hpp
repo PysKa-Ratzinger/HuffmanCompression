@@ -31,6 +31,8 @@ struct FileAnalysis
 	 */
 	std::array< size_t, TOTAL_CHARS > frequency { 0 };
 
+	void Print() const;
+
 	/**
 	 * The total number of bytes in the file
 	 */

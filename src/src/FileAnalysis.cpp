@@ -25,3 +25,14 @@ FileAnalysis::FileAnalysis(
 	}
 }
 
+void FileAnalysis::Print() const
+{
+	for ( size_t i = 0; i < 256; i++ ) {
+		size_t freq = this->frequency[i];
+		if ( freq > 0 ) {
+			printf( "Character 0x%02x ( %c ) appears %ld times.\n",
+					(uint8_t) i, (char) i, this->frequency[i] );
+		}
+	}
+}
+

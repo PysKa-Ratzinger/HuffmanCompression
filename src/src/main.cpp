@@ -1,115 +1,140 @@
-#include <stdio.h>
-#include <string.h>
 #include "HuffmanEncoding.hpp"
 #include "BitStream.hpp"
 #include "BinaryHeap.hpp"
+
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
 
 #define BUFFER_SZ 1024
 
 #define COMPRESS 3
 #define DECOMPRESS 2
 
+using namespace huffman;
+
 int main (int argc, char* argv[])
 {
 	(void) argc;
 	(void) argv;
 
-	printf( "NOT YET IMPLEMENTED\n" );
-	return 0;
+	std::stringstream ss_in;
+	std::stringstream ss_out;
 
-	char buffer[BUFFER_SZ];
+	std::string inputText = "HAMLET\n"
+		"To be, or not to be: that is the question:\n"
+		"Whether 'tis nobler in the mind to suffer\n"
+		"The slings and arrows of outrageous fortune,\n"
+		"Or to take arms against a sea of troubles,\n"
+	/*
+		"And by opposing end them? To die: to sleep;\n"
+		"No more; and by a sleep to say we end\n"
+		"The heart-ache and the thousand natural shocks\n"
+		"That flesh is heir to, 'tis a consummation\n"
+		"Devoutly to be wish'd. To die, to sleep;\n"
+		"To sleep: perchance to dream: ay, there's the rub;\n"
+		"For in that sleep of death what dreams may come\n"
+		"When we have shuffled off this mortal coil,\n"
+		"Must give us pause: there's the respect\n"
+		"That makes calamity of so long life;\n"
+		"For who would bear the whips and scorns of time,\n"
+		"The oppressor's wrong, the proud man's contumely,\n"
+		"The pangs of despised love, the law's delay,\n"
+		"The insolence of office and the spurns\n"
+		"That patient merit of the unworthy takes,\n"
+		"When he himself might his quietus make\n"
+		"With a bare bodkin? who would fardels bear,\n"
+		"To grunt and sweat under a weary life,\n"
+		"But that the dread of something after death,\n"
+		"The undiscover'd country from whose bourn"
+		"No traveller returns, puzzles the will\n"
+		"And makes us rather bear those ills we have\n"
+		"Than fly to others that we know not of?\n"
+		"Thus conscience does make cowards of us all;\n"
+		"And thus the native hue of resolution"\n"
+		*/
+		;
 
-	printf( "Options:\n\n" );
-	printf( "\t1. Compress file\n" );
-	printf( "\t2. Decompress file\n" );
-	printf( "\t3. Run tests...\n" );
-	printf( "\t0. Exit\n" );
-	fgets( buffer, BUFFER_SZ, stdin );
+	BitStream outStream( ss_out );
 
-	int option = 0;
+	struct FileAnalysis info;
+	info.FeedText( inputText.c_str(), inputText.size() );
+	info.Print();
 
-	switch( buffer[0] )
-	{
-		case '0':
-			return 0;
+	// Write size into output first
+	size_t nBytes = inputText.size();
+	outStream.WriteNBits( (const char*) &nBytes, sizeof( nBytes ) * 8 );
 
-		case '1':
-			option = COMPRESS;
-			break;
+	// Persist huffman tree
+	Tree tree = Tree::CreateNewTree( info );
+	size_t bitsWritten = tree.Persist( outStream );
+	tree.Print();
 
-		case '2':
-			option = DECOMPRESS;
-			return 1;
+	printf( "Tree encoding takes %ld bits ( %ld bytes + %ld bits )\n",
+			bitsWritten, bitsWritten / 8, bitsWritten % 8 );
 
-		default:
-			return 1;
+	for ( int i = 0; i < 16 * 8; i++ ) {
+		outStream.WriteBit( false );
 	}
 
-	printf( "Name of the file to be analysed: " );
-	fflush( stdout );
-	fgets( buffer, BUFFER_SZ, stdin );
-	buffer[strlen( buffer ) - 1] = '\0';
-
-	fprintf( stderr, "Opening input file... " );
-	FILE* inputFile = fopen( buffer, "r" );
-	if ( inputFile == NULL ) {
-		fprintf( stderr, "ERROR\n" );
-		perror( "fopen" );
-		exit( EXIT_FAILURE );
+	// Encode every character from the input text
+	for ( char c : inputText ) {
+		tree.EncodeByte( outStream, c );
 	}
 
-	fprintf( stderr, "DONE\n" );
+	outStream.Flush();
 
-	printf( "Name of the output file: " );
-	fflush( stdout );
-	fgets( buffer, BUFFER_SZ, stdin );
-	buffer[strlen( buffer ) - 1] = '\0';
 
-	fprintf( stderr, "Opening output file... " );
-	FILE* outputFile = fopen( buffer, "w+" );
-	if ( outputFile == NULL ) {
-		fprintf( stderr, "ERROR\n" );
-		perror( "fopen" );
-		fclose( inputFile );
-		exit( EXIT_FAILURE );
+	std::string encodedResult = ss_out.str();
+
+	int n = 0;
+	for ( uint8_t c : encodedResult ) {
+		n++;
+		printf( "%02x", c );
+		if ( n % 8 == 0 ) {
+			if ( n % 16 == 0 ) {
+				printf( "\n" );
+			} else {
+				printf( "   " );
+			}
+		} else {
+			printf( " " );
+		}
+	}
+	printf( "\n" );
+
+
+	// Now, let's decode it
+	//
+	BitStream inStream( ss_out );
+
+	// Read size
+	size_t nBytesIn;
+	inStream.ReadNBits( (char*) &nBytesIn, sizeof( nBytesIn ) * 8 );
+
+	Tree t = Tree::LoadTree( inStream );
+
+	for ( int i = 0; i < 16 * 8; i++ ) {
+		bool bit;
+		inStream.ReadBit( bit );
 	}
 
-	fprintf( stderr, "DONE\n" );
-
-	printf( "NOT YET IMPLEMENTED\n" );
-	return 0;
-
-	(void) option; // unused
-
-#if 0
-	int inFD = fileno( inputFile );
-	int outFD = fileno( outputFile );
-
-	bool operationResult;
-	switch ( option )
-	{
-		case COMPRESS:
-			operationResult = HuffmanEncode( inFD, outFD );
-			break;
-			 
-		case DECOMPRESS:
-			operationResult = HuffmanDecode( inFD, outFD );
-			break;
-
-		default:
-			return 1;
+	try {
+		while ( nBytesIn ) {
+			ss_in << t.DecodeByte( inStream );
+			nBytesIn--;
+		}
+	} catch ( ... ) {
+		printf( "Caught exception with %ld bytes to go...", nBytesIn );
 	}
 
-	if ( operationResult ) {
-		printf( "Huffman enconding complete.\n" );
-	}else{
-		printf( "It seems an error has occurred or something.\n" );
+	std::string decodedString = ss_in.str();
+	printf( "Decoded string: %s\n", decodedString.c_str() );
+
+	if ( t == tree ) {
+		printf( "Both trees have the same encoding!\n" );
+	} else {
+		printf( "The trees are different...\n" );
 	}
-
-	fclose( outputFile );
-	fclose( inputFile );
-
-	return 0;
-#endif
 }
 

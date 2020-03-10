@@ -28,7 +28,8 @@ void BitStream::WriteNBits( const unsigned char *buffer, size_t numBits )
 
 	const unsigned char c = *buffer;
 	for ( size_t i = 0; i < numBits; i++ ) {
-		WriteBit( c >> ( 7 - i ) );
+		bool bit = ( c >> ( 7 - i ) ) & 0x1;
+		WriteBit( bit );
 	}
 }
 

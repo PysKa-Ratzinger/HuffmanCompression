@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <stdlib.h>
+#include <stdint.h>
 
 /*
 ================================
@@ -21,11 +22,12 @@ public:
 
 	CharacterEncoding& operator=( const CharacterEncoding& other );
 
-	bool     GetBit( size_t index ) const;
-	size_t   GetBitSize() const;
-	bool     IsEmpty() const;
-	void     AddBit( bool bit );
-	void     RemoveBit();
+	const uint8_t* GetRaw() const;
+	bool           GetBit( size_t index ) const;
+	size_t         GetNumBits() const;
+	bool           IsEmpty() const;
+	void           AddBit( bool bit );
+	void           RemoveBit();
 
 	// Utility function
 	void AddBits( const std::vector< bool > bits ) {
@@ -37,6 +39,7 @@ public:
 	bool operator==( const CharacterEncoding& other ) const;
 
 private:
-	std::vector<bool> bytes;
+	std::vector< uint8_t > bytes;
+	size_t                 numBits;
 };
 

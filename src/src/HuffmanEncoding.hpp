@@ -20,22 +20,28 @@ class INode
 {
 public:
 	using Ptr = std::shared_ptr< INode >;
+	using ConstPtr = std::shared_ptr< const INode >;
 
 	virtual ~INode() {}
 
 	virtual uint64_t Weight() const = 0;
 	virtual void     Print( unsigned depth ) const = 0;
-	virtual void     EncodeBinary( BitStream& outStream ) const = 0;
+	virtual size_t   Persist( BitStream& outStream ) const = 0;
 	virtual void     SaveEncoding( 
 			std::array< CharacterEncoding, 256>& arr,
 			CharacterEncoding& curr ) const = 0;
+
+	virtual bool     IsLeaf() const = 0;
+	virtual uint8_t  GetElem() const = 0;
+	virtual ConstPtr GetLeftChild() const = 0;
+	virtual ConstPtr GetRightChild() const = 0;
 
 	bool operator < ( const INode& other ) const
 	{
 		return Weight() < other.Weight();
 	}
 
-	virtual bool operator==( const INode& other ) const;
+	virtual bool operator==( const INode& other ) const = 0;
 };
 
 /*
@@ -60,8 +66,8 @@ public:
 		static_cast<const Deriv&>(*this).PrintImpl( depth );
 	}
 
-	void EncodeBinary( BitStream& outStream ) const override {
-		static_cast<const Deriv&>(*this).EncodeBinaryImpl( outStream );
+	size_t Persist( BitStream& outStream ) const override {
+		return static_cast<const Deriv&>(*this).PersistImpl( outStream );
 	}
 
 	void SaveEncoding( std::array< CharacterEncoding, 256>& arr,
@@ -71,7 +77,23 @@ public:
 
 	bool operator==( const INode& other ) const override {
 		const Deriv* o = dynamic_cast<const Deriv*>(&other);
-		return o != nullptr && static_cast<const Deriv&>(*this).equals(*o);
+		return o != nullptr && static_cast<const Deriv&>(*this) == *o;
+	}
+
+	bool IsLeaf() const override {
+		return static_cast<const Deriv&>(*this).IsLeafImpl();
+	}
+
+	uint8_t  GetElem() const override {
+		return static_cast<const Deriv&>(*this).GetElemImpl();
+	}
+
+	ConstPtr GetLeftChild() const override {
+		return static_cast<const Deriv&>(*this).GetLeftChildImpl();
+	}
+
+	ConstPtr GetRightChild() const override {
+		return static_cast<const Deriv&>(*this).GetRightChildImpl();
 	}
 
 private:
@@ -87,7 +109,7 @@ but a value.
 class LeafNode : public Node< LeafNode >
 {
 public:
-	LeafNode( unsigned long weight, unsigned char elem )
+	LeafNode( unsigned long weight, uint8_t elem )
 			: Node< LeafNode >( weight )
 			, elem( elem )
 	{
@@ -96,15 +118,20 @@ public:
 
 	~LeafNode() { }
 
-	void PrintImpl( unsigned depth ) const;
-	void EncodeBinaryImpl( BitStream& outStream ) const;
-	void SaveEncodingImpl( std::array< CharacterEncoding, 256>& arr,
+	void   PrintImpl( unsigned depth ) const;
+	size_t PersistImpl( BitStream& outStream ) const;
+	void   SaveEncodingImpl( std::array< CharacterEncoding, 256>& arr,
 			CharacterEncoding& curr ) const;
 
-	bool equals( const LeafNode& other ) const;
+	bool     IsLeafImpl() const { return true; }
+	uint8_t  GetElemImpl() const { return elem; }
+	ConstPtr GetLeftChildImpl() const { return nullptr; }
+	ConstPtr GetRightChildImpl() const { return nullptr; }
+
+	bool operator==( const LeafNode& other ) const;
 
 private:
-	unsigned char elem;
+	uint8_t elem;
 };
 
 /*
@@ -126,12 +153,17 @@ public:
 
 	~ParentNode() { }
 
-	void PrintImpl( unsigned depth ) const;
-	void EncodeBinaryImpl( BitStream& outStream ) const;
-	void SaveEncodingImpl( std::array< CharacterEncoding, 256>& arr,
+	void   PrintImpl( unsigned depth ) const;
+	size_t PersistImpl( BitStream& outStream ) const;
+	void   SaveEncodingImpl( std::array< CharacterEncoding, 256>& arr,
 			CharacterEncoding& curr ) const;
 
-	bool equals( const ParentNode& other ) const;
+	bool     IsLeafImpl() const { return false; }
+	uint8_t  GetElemImpl() const { return 0x00; }
+	ConstPtr GetLeftChildImpl() const { return this->left; }
+	ConstPtr GetRightChildImpl() const { return this->right; }
+
+	bool operator==( const ParentNode& other ) const;
 
 private:
 	INode::Ptr left;
@@ -150,24 +182,17 @@ public:
 	Tree( const std::shared_ptr<INode> head );
 	~Tree();
 
-	static Tree CreateNewTree( const struct FileAnalysis& info );
+	static Tree   CreateNewTree( const struct FileAnalysis& info );
+	static Tree   LoadTree( BitStream& inStream );
 
-	/*
-	 * Outputs the Huffman Encoding tree in a binary form
-	 */
-	void        EncodeBinary( BitStream& outStream ) const;
+	size_t        Persist( BitStream& outStream ) const;
+	void          EncodeByte( BitStream& outStream, uint8_t byte ) const;
+	uint8_t       DecodeByte( BitStream& inStream ) const;
+	void          Print() const;
 
-	/*
-	 * Given a byte, whose encoding we know, output it's binary correspondent
-	 */
-	void        EncodeByte( BitStream& outStream, unsigned char byte ) const;
-
-	static Tree LoadTree( BitStream& inStream );
-	void        Print() const;
+	bool          operator==( const Tree& other ) const;
 
 	const std::array< CharacterEncoding, 256 > GetEncoding() const;
-
-	bool operator==( const Tree& other ) const;
 
 protected:
 	std::shared_ptr< const INode >   head;

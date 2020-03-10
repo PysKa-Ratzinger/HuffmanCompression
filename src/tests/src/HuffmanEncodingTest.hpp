@@ -4,17 +4,17 @@
 
 using namespace CppUnit;
 
-class HuffmanAlgorithmTest : public TestCase
+class HuffmanEncodingTest : public TestCase
 {
 public:
 	static Test* Suite();
 
+	void EncodeByteTest();
+	void DecodeByteTest();
 	void FrequencyAnalysisTest();
-
-	void LeafEncodeBinaryTest();
-	void ParentEncodeBinaryTest();
-
 	void HuffmanTreeEncodingTest();
+	void LeafPersistTest();
+	void ParentPersistTest();
 };
 
 
