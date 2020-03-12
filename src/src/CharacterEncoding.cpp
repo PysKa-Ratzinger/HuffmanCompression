@@ -3,6 +3,7 @@
 #include "CharacterEncoding.hpp"
 
 #include <stdexcept>
+#include <sstream>
 
 CharacterEncoding::CharacterEncoding() : numBits( 0 )
 {
@@ -72,11 +73,11 @@ void CharacterEncoding::AddBit( bool bit )
 
 void CharacterEncoding::RemoveBit()
 {
-	// numbits: 3
-	// 0b1110 0000
+	// numbits: 0
+	// 0b1111 1111
 	//
-	// 0x1 >> ( numbits - 2 )
-	// 0b0100 0000
+	// 0x80 >> ( numbits - 2 )
+	// 0b0000 0001
 	//
 	// _ - 1
 	// 0b0011 1111
@@ -88,6 +89,9 @@ void CharacterEncoding::RemoveBit()
 	if ( rem == 1 ) {
 		this->bytes.pop_back();
 	} else {
+		if ( rem == 0 ) {
+			rem = 8;
+		}
 		uint8_t mask = ~ ((0x80 >> ( rem - 2 ) ) - 1);
 		this->bytes[ this->bytes.size() - 1 ] &= mask;
 	}
@@ -97,5 +101,16 @@ void CharacterEncoding::RemoveBit()
 bool CharacterEncoding::operator==( const CharacterEncoding& other ) const
 {
 	return bytes == other.bytes;
+}
+
+std::string CharacterEncoding::GetRepr() const
+{
+	std::stringstream ss;
+	for ( size_t i = 0; i < this->GetNumBits(); i++ )
+	{
+		bool bit = this->GetBit( i );
+		ss << (bit ? "1" : "0");
+	}
+	return ss.str();
 }
 

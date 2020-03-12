@@ -27,15 +27,14 @@ The reading operation is exactly the opposite, but maintains the same
 structure. The FIRST bit written will be the FIRST bit read.
 =============================================
  */
-class BitStream{
+class IBitStream
+{
 public:
-	BitStream( std::stringstream& oss );
-
-	void          WriteNBits( const unsigned char* buffer, size_t numBits );
-	void          WriteBit( bool bit );
-	bool          ReadBit( bool& bit );
-	size_t        ReadNBits( unsigned char* buffer, size_t numBits );
-	void          Flush();
+	virtual void    WriteNBits( const unsigned char* buffer, size_t numBits ) = 0;
+	virtual void    WriteBit( bool bit ) = 0;
+	virtual bool    ReadBit( bool& bit ) = 0;
+	virtual size_t  ReadNBits( unsigned char* buffer, size_t numBits ) = 0;
+	virtual void    Flush() = 0;
 
 	void WriteNBits( const char* buffer, size_t numBits ) {
 		return WriteNBits( (const unsigned char*) buffer, numBits );
@@ -49,6 +48,18 @@ public:
 	size_t ReadNBits( char* buffer, size_t numBits ) {
 		return ReadNBits( (unsigned char*) buffer, numBits );
 	}
+};
+
+class BitStream : public IBitStream
+{
+public:
+	BitStream( std::stringstream& ss );
+
+	void    WriteNBits( const unsigned char* buffer, size_t numBits ) override;
+	void    WriteBit( bool bit ) override;
+	bool    ReadBit( bool& bit ) override;
+	size_t  ReadNBits( unsigned char* buffer, size_t numBits ) override;
+	void    Flush() override;
 
 private:
 	std::stringstream&  oss;
@@ -56,5 +67,20 @@ private:
 	uint8_t             charOutBuffer;
 	size_t              charInBufferSize;
 	size_t              charOutBufferSize;
+};
+
+class NaiveBitStream : public IBitStream
+{
+public:
+	NaiveBitStream( std::stringstream& ss ) : oss ( ss ) { }
+
+	void    WriteNBits( const unsigned char* buffer, size_t numBits ) override;
+	void    WriteBit( bool bit ) override;
+	bool    ReadBit( bool& bit ) override;
+	size_t  ReadNBits( unsigned char* buffer, size_t numBits ) override;
+	void    Flush() override;
+
+private:
+	std::stringstream&  oss;
 };
 

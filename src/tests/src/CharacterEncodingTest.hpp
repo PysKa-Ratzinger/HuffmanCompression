@@ -10,6 +10,7 @@ public:
 	static Test* Suite();
 
 	void SimpleTest();
+	void ExtendedTest();
 };
 
 

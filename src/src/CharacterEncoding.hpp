@@ -3,6 +3,7 @@
 #include <vector>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string>
 
 /*
 ================================
@@ -28,6 +29,7 @@ public:
 	bool           IsEmpty() const;
 	void           AddBit( bool bit );
 	void           RemoveBit();
+	std::string    GetRepr() const;
 
 	// Utility function
 	void AddBits( const std::vector< bool > bits ) {
