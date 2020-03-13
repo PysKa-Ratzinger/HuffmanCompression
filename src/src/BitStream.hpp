@@ -2,7 +2,9 @@
 
 #include <stdlib.h>
 #include <stdint.h>
-#include <sstream>
+#include <iostream>
+#include <istream>
+#include <ostream>
 
 /*
 =============================================
@@ -27,13 +29,11 @@ The reading operation is exactly the opposite, but maintains the same
 structure. The FIRST bit written will be the FIRST bit read.
 =============================================
  */
-class IBitStream
+class IOutBitStream
 {
 public:
 	virtual void    WriteNBits( const unsigned char* buffer, size_t numBits ) = 0;
 	virtual void    WriteBit( bool bit ) = 0;
-	virtual bool    ReadBit( bool& bit ) = 0;
-	virtual size_t  ReadNBits( unsigned char* buffer, size_t numBits ) = 0;
 	virtual void    Flush() = 0;
 
 	void WriteNBits( const char* buffer, size_t numBits ) {
@@ -44,43 +44,166 @@ public:
 		return WriteNBits( (const unsigned char*) result.c_str(),
 				result.size() * 8 );
 	}
+};
 
-	size_t ReadNBits( char* buffer, size_t numBits ) {
-		return ReadNBits( (unsigned char*) buffer, numBits );
+class IInBitStream
+{
+public:
+	virtual bool    ReadBit( bool& bit ) = 0;
+	virtual size_t  ReadNBits( void* buffer, size_t numBits ) = 0;
+};
+
+template < typename outStream_T >
+class OutBitStream : public IOutBitStream
+{
+public:
+	OutBitStream( outStream_T&& oss )
+			: oss( std::forward<outStream_T>(oss) )
+			, charOutBuffer( 0 )
+			, charOutBufferSize( 0 )
+	{ }
+
+	void WriteNBits( const unsigned char* buffer, size_t numBits ) override
+	{
+		while ( numBits >= 8 ) {
+			const unsigned char c = *buffer;
+			for ( size_t i = 0; i < 8; i++ ) {
+				bool bit = ( c >> ( 7 - i ) ) & 0x1;
+				WriteBit( bit );
+			}
+			buffer++;
+			numBits -= 8;
+		}
+
+		if ( numBits > 0 ) {
+			const unsigned char c = *buffer;
+			for ( size_t i = 0; i < numBits; i++ ) {
+				bool bit = ( c >> ( 7 - i ) ) & 0x1;
+				WriteBit( bit );
+			}
+		}
 	}
+
+	void WriteBit( bool bit ) override
+	{
+		size_t shift = 8 - charOutBufferSize - 1;
+		charOutBuffer >>= shift;
+		charOutBuffer |= bit;
+		charOutBuffer <<= shift;
+		charOutBufferSize++;
+		if ( charOutBufferSize == 8 ) {
+			Flush();
+			charOutBuffer = '\0'; // Clean charOutBuffer
+		}
+	}
+
+	void Flush() override
+	{
+		if ( charOutBufferSize > 0 ) {
+			oss << charOutBuffer;
+			charOutBufferSize = 0;
+		}
+	}
+
+private:
+	outStream_T&& oss;
+	uint8_t       charOutBuffer;
+	size_t        charOutBufferSize;
 };
 
-class BitStream : public IBitStream
+template < typename inStream_T >
+class InBitStream : public IInBitStream
 {
 public:
-	BitStream( std::stringstream& ss );
+	InBitStream( inStream_T&& iss )
+		: iss( std::forward<inStream_T>(iss) )
+		, charInBuffer( 0 )
+		, charInBufferSize( 0 )
+	{ }
+
+	bool ReadBit( bool& bit ) override
+	{
+		if ( charInBufferSize == 0 ) {
+			int c = iss.get();
+			if ( c == EOF ) {
+				return false;
+			}
+			charInBuffer = c;
+			charInBufferSize = 8;
+		}
+
+		bit = charInBuffer & 0x80;
+		charInBuffer <<= 1;
+		charInBufferSize--;
+		return true;
+	}
+
+	size_t  ReadNBits( void* b, size_t numBits ) override
+	{
+		unsigned char* buffer = static_cast<unsigned char*>( b );
+		size_t bitsRead = 0;
+		bool bit;
+
+		// TODO: Optimize this code
+		while ( numBits >= 8 ) {
+			*buffer = '\0';
+			for ( size_t i = 0; i < 8; i++ ) {
+				if ( ! this->ReadBit( bit ) ) {
+					return bitsRead;
+				}
+				*buffer |= ( static_cast<unsigned char>( bit ) << ( 7 - i ) );
+				bitsRead++;
+				numBits--;
+			}
+			buffer++;
+		}
+
+		if ( numBits > 0 ) {
+			*buffer = '\0';
+			for ( size_t i = 0; i < numBits; i++ ) {
+				if ( ! this->ReadBit( bit ) ) {
+					return bitsRead;
+				}
+				*buffer |= ( bit << ( 7 - i ) );
+				bitsRead++;
+			}
+		}
+
+		return bitsRead;
+	}
+
+private:
+	inStream_T&& iss;
+	uint8_t      charInBuffer;
+	size_t       charInBufferSize;
+};
+
+#if 0
+
+class NaiveInBitStream : public IInBitStream
+{
+public:
+	NaiveInBitStream( std::istream* ss ) : iss ( ss ) { }
+
+	bool    ReadBit( bool& bit ) override;
+	size_t  ReadNBits( unsigned char* buffer, size_t numBits ) override;
+
+private:
+	std::istream* iss;
+};
+
+class NaiveOutBitStream : public IOutBitStream
+{
+public:
+	NaiveOutBitStream( std::ostream* ss ) : oss ( ss ) { }
 
 	void    WriteNBits( const unsigned char* buffer, size_t numBits ) override;
 	void    WriteBit( bool bit ) override;
-	bool    ReadBit( bool& bit ) override;
-	size_t  ReadNBits( unsigned char* buffer, size_t numBits ) override;
 	void    Flush() override;
 
 private:
-	std::stringstream&  oss;
-	uint8_t             charInBuffer;
-	uint8_t             charOutBuffer;
-	size_t              charInBufferSize;
-	size_t              charOutBufferSize;
+	std::ostream* oss;
 };
 
-class NaiveBitStream : public IBitStream
-{
-public:
-	NaiveBitStream( std::stringstream& ss ) : oss ( ss ) { }
-
-	void    WriteNBits( const unsigned char* buffer, size_t numBits ) override;
-	void    WriteBit( bool bit ) override;
-	bool    ReadBit( bool& bit ) override;
-	size_t  ReadNBits( unsigned char* buffer, size_t numBits ) override;
-	void    Flush() override;
-
-private:
-	std::stringstream&  oss;
-};
+#endif
 

@@ -36,7 +36,7 @@ LeafNode::PrintImpl( unsigned depth ) const
 }
 
 size_t
-LeafNode::PersistImpl( IBitStream& outStream ) const
+LeafNode::PersistImpl( IOutBitStream& outStream ) const
 {
 	outStream.WriteBit( 0 );
 	outStream.WriteNBits( &elem, sizeof(elem) * 8 );
@@ -84,8 +84,8 @@ Tree::~Tree()
 
 }
 
-static INode::Ptr
-ReadHuffmanNode( IBitStream& inStream )
+INode::Ptr
+ReadHuffmanNode( IInBitStream& inStream )
 {
 	bool bit;
 
@@ -105,7 +105,7 @@ ReadHuffmanNode( IBitStream& inStream )
 }
 
 Tree
-Tree::LoadTree( IBitStream& inStream )
+Tree::LoadTree( IInBitStream& inStream )
 {
 	INode::Ptr head = ReadHuffmanNode( inStream );
 	return Tree( head );
@@ -139,7 +139,7 @@ Tree::Print() const
 }
 
 size_t
-ParentNode::PersistImpl( IBitStream& outStream ) const
+ParentNode::PersistImpl( IOutBitStream& outStream ) const
 {
 	size_t nBytes = 1;
 	outStream.WriteBit( 1 );
@@ -156,7 +156,7 @@ ParentNode::operator==( const ParentNode& other ) const
 }
 
 size_t
-Tree::Persist( IBitStream& outStream ) const
+Tree::Persist( IOutBitStream& outStream ) const
 {
 	if ( head ) {
 		return head->Persist( outStream );
@@ -165,18 +165,22 @@ Tree::Persist( IBitStream& outStream ) const
 }
 
 void
-Tree::EncodeByte( IBitStream& outStream , uint8_t byte ) const
+Tree::EncodeByte( IOutBitStream& outStream , uint8_t byte ) const
 {
 	const CharacterEncoding& currEncoding = encoding[byte];
 	outStream.WriteNBits( currEncoding.GetRaw(), currEncoding.GetNumBits() );
 }
 
-uint8_t Tree::DecodeByte( IBitStream& inStream ) const
+uint8_t Tree::DecodeByte( IInBitStream& inStream ) const
 {
 	INode::ConstPtr curr = this->head;
 
 	bool bit;
-	while ( ! curr->IsLeaf() && inStream.ReadBit( bit ) ) {
+	while ( ! curr->IsLeaf() ) {
+		if ( ! inStream.ReadBit( bit ) ) {
+			break;
+		}
+
 		if ( bit ) {
 			curr = curr->GetRightChild();
 		} else {

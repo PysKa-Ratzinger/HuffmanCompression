@@ -26,7 +26,7 @@ public:
 
 	virtual uint64_t Weight() const = 0;
 	virtual void     Print( unsigned depth ) const = 0;
-	virtual size_t   Persist( IBitStream& outStream ) const = 0;
+	virtual size_t   Persist( IOutBitStream& outStream ) const = 0;
 	virtual void     SaveEncoding( 
 			std::array< CharacterEncoding, 256>& arr,
 			CharacterEncoding& curr ) const = 0;
@@ -66,7 +66,7 @@ public:
 		static_cast<const Deriv&>(*this).PrintImpl( depth );
 	}
 
-	size_t Persist( IBitStream& outStream ) const override {
+	size_t Persist( IOutBitStream& outStream ) const override {
 		return static_cast<const Deriv&>(*this).PersistImpl( outStream );
 	}
 
@@ -119,7 +119,7 @@ public:
 	~LeafNode() { }
 
 	void   PrintImpl( unsigned depth ) const;
-	size_t PersistImpl( IBitStream& outStream ) const;
+	size_t PersistImpl( IOutBitStream& outStream ) const;
 	void   SaveEncodingImpl( std::array< CharacterEncoding, 256>& arr,
 			CharacterEncoding& curr ) const;
 
@@ -154,7 +154,7 @@ public:
 	~ParentNode() { }
 
 	void   PrintImpl( unsigned depth ) const;
-	size_t PersistImpl( IBitStream& outStream ) const;
+	size_t PersistImpl( IOutBitStream& outStream ) const;
 	void   SaveEncodingImpl( std::array< CharacterEncoding, 256>& arr,
 			CharacterEncoding& curr ) const;
 
@@ -183,11 +183,11 @@ public:
 	~Tree();
 
 	static Tree   CreateNewTree( const struct FileAnalysis& info );
-	static Tree   LoadTree( IBitStream& inStream );
+	static Tree   LoadTree( IInBitStream& inStream );
 
-	size_t        Persist( IBitStream& outStream ) const;
-	void          EncodeByte( IBitStream& outStream, uint8_t byte ) const;
-	uint8_t       DecodeByte( IBitStream& inStream ) const;
+	size_t        Persist( IOutBitStream& outStream ) const;
+	void          EncodeByte( IOutBitStream& outStream, uint8_t byte ) const;
+	uint8_t       DecodeByte( IInBitStream& inStream ) const;
 	void          Print() const;
 
 	bool          operator==( const Tree& other ) const;
@@ -216,4 +216,7 @@ struct std::greater< INode::Ptr >
 		// return a && b ? *b < *a : b < a;   // Not even readable
 	}
 };
+
+INode::Ptr
+ReadHuffmanNode( IInBitStream& inStream );
 

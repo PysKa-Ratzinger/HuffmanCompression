@@ -6,14 +6,20 @@ TARGET  := main
 dir_guard=@mkdir -p $(@D)
 
 CC := g++
+#CC := clang
 
 CXXFLAGS := -W
 CXXFLAGS += -Wall
 CXXFLAGS += -Wextra
 CXXFLAGS += -Werror
 CXXFLAGS += -Wfatal-errors
-CXXFLAGS += -g
-CXXFLAGS += -O0
+CXXFLAGS += -std=c++11
+#CXXFLAGS += -fsanitize=address
+#CXXFLAGS += -g
+CXXFLAGS += -O3
+
+LDFLAGS := -lstdc++
+#LDFLAGS += -lasan
 
 VALGRINDFLAGS := --leak-check=full
 VALGRINDFLAGS += --show-leak-kinds=all

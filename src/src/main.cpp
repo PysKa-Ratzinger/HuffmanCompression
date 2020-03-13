@@ -6,125 +6,133 @@
 #include <string.h>
 #include <stdint.h>
 #include <chrono>
+#include <iostream>
+#include <fstream>
 
-#define BUFFER_SZ 1024
+#define BUFFER_SZ 1024 * 64   // 64 Kbs
 
 #define COMPRESS 3
 #define DECOMPRESS 2
 
 using namespace huffman;
 
-int main (int argc, char* argv[])
+std::streampos SimpleCompress( const std::string& inputFile,
+		const std::string& outputFile )
 {
-	(void) argc;
-	(void) argv;
-
-	std::stringstream ss_in;
-	std::stringstream ss_out;
-
-	std::string inputFile = "testFiles/hamlet2.txt";
-
-	FILE* inFile = fopen( inputFile.c_str(), "r+" );
-
-	using high_res_clock = std::chrono::high_resolution_clock;
-	high_res_clock::time_point p1, p2, p3, p4;
-	high_res_clock::duration encodingDelta, decodingDelta;
-
-	p1 = high_res_clock::now();
-
-	BitStream outStream( ss_out );
-
+	std::ofstream outFile( outputFile );
 	struct FileAnalysis info;
-
-	size_t totalBytes = 0;
-	ssize_t nbytes;
 	char buffer[ BUFFER_SZ ];
+	size_t totalBytes = 0;
 
-	while ( ( nbytes = fread( buffer, 1, BUFFER_SZ, inFile ) ) > 0 ) {
-		totalBytes += nbytes;
-		info.FeedText( buffer, nbytes );
+	std::ifstream inFile( inputFile );
+
+	if ( ! inFile.is_open() ) {
+		printf( "Unable to open input file\n" );
+		return -1;
+	} else if ( ! outFile.is_open() ) {
+		printf( "Unable to open output file\n" );
+		return -1;
 	}
+
+	do {
+		inFile.read( buffer, BUFFER_SZ );
+		if ( inFile.gcount() <= 0 ) {
+			break;
+		}
+		totalBytes += inFile.gcount();
+		info.FeedText( buffer, BUFFER_SZ );
+	} while ( true );
 	// info.Print();
 
-	// Write size into output first
+	inFile.clear();
+	inFile.seekg( 0, std::ios::beg );
+
+	// Write length of decoded data into encoded file
+	OutBitStream<std::ofstream> outStream( std::move( outFile ) );
 	outStream.WriteNBits( (unsigned char*) &totalBytes, sizeof( totalBytes ) * 8 );
 
 	// Persist huffman tree
 	Tree tree = Tree::CreateNewTree( info );
 	size_t bitsWritten = tree.Persist( outStream );
-	(void) bitsWritten;
 	// tree.Print();
 
-	/*
 	printf( "Tree encoding takes %ld bits ( %ld bytes + %ld bits )\n",
 			bitsWritten, bitsWritten / 8, bitsWritten % 8 );
-			*/
 
-	// Encode every character from the input text
-	fseek( inFile, 0L, SEEK_SET );
-	while ( ( nbytes = fread( buffer, 1, BUFFER_SZ, inFile ) ) > 0 ) {
-		totalBytes += nbytes;
-		info.FeedText( buffer, nbytes );
+	// Encode file
+	do {
+		inFile.read( buffer, BUFFER_SZ );
+		std::streamsize nBytes = inFile.gcount();
+		if ( nBytes <= 0 ) {
+			break;
+		}
 
-		for ( ssize_t i = 0; i < nbytes; i++ ) {
+		for ( int i = 0; i < nBytes; i++ ) {
 			tree.EncodeByte( outStream, buffer[i] );
 		}
-	}
+	} while ( true );
 
 	outStream.Flush();
 
-	p2 = high_res_clock::now();
-	encodingDelta = p2 - p1;
+	return outFile.tellp();
+}
 
-	std::string encodedResult = ss_out.str();
+std::streampos SimpleDecompress( const std::string& inputFile,
+		const std::string& outputFile )
+{
+	std::ifstream inFile( inputFile );
+	std::ofstream outFile( outputFile );
 
-	/*
-	int n = 0;
-	for ( uint8_t c : encodedResult ) {
-		n++;
-		printf( "%02x", c );
-		if ( n % 8 == 0 ) {
-			if ( n % 16 == 0 ) {
-				printf( "\n" );
-			} else {
-				printf( "   " );
-			}
-		} else {
-			printf( " " );
-		}
+	if ( ! inFile.is_open() ) {
+		printf( "Unable to open input file\n" );
+		return -1;
+	} else if ( ! outFile.is_open() ) {
+		printf( "Unable to open output file\n" );
+		return -1;
 	}
-	printf( "\n" );
-	*/
 
-	p3 = high_res_clock::now();
+	InBitStream<std::ifstream> inStream( std::move(inFile) );
 
-	// Now, let's decode it
-	//
-	BitStream inStream( ss_out );
-
-	// Read size
 	size_t nBytesIn;
-	inStream.ReadNBits( (unsigned char*) &nBytesIn, sizeof( nBytesIn ) * 8 );
+	inStream.ReadNBits( &nBytesIn, sizeof( nBytesIn ) * 8 );
 
 	Tree t = Tree::LoadTree( inStream );
+	// t.Print();
 
 	try {
 		while ( nBytesIn ) {
-			ss_in << tree.DecodeByte( inStream );
+			outFile << (unsigned char) t.DecodeByte( inStream );
 			nBytesIn--;
 		}
 	} catch ( ... ) {
 		printf( "Caught exception with %ld bytes to go...", nBytesIn );
 	}
 
-	p4 = high_res_clock::now();
-	decodingDelta = p4 - p3;
+	return outFile.tellp();
+}
 
-	std::string decodedString = ss_in.str();
-	printf( "Decoded string: %s\n", decodedString.c_str() );
+int main (int argc, char* argv[])
+{
+	(void) argc;
+	(void) argv;
 
-	size_t decLen = decodedString.size();
-	size_t encLen = encodedResult.size();
+	using high_res_clock = std::chrono::high_resolution_clock;
+	high_res_clock::time_point p1, p2, p3;
+	high_res_clock::duration encodingDelta, decodingDelta;
+
+	std::string inputFile = "testFiles/hamlet2.txt";
+	std::string outFile =   "testFiles/hamlet2.txt.encrypted";
+	std::string outFile2 =  "testFiles/hamlet2.txt.decrypted";
+
+	p1 = high_res_clock::now();
+	size_t encLen = SimpleCompress( inputFile, outFile );
+	p2 = high_res_clock::now();
+	size_t decLen = SimpleDecompress( outFile, outFile2 );
+	p3 = high_res_clock::now();
+
+	encodingDelta = p2 - p1;
+	decodingDelta = p3 - p2;
+
 	printf( "Decoded string length: %ld\n", decLen );
 	printf( "Encoded string length: %ld\n", encLen );
 

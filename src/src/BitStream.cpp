@@ -4,16 +4,6 @@
 
 #include <stdexcept>
 
-BitStream::BitStream( std::stringstream& oss )
-		: oss( oss )
-		, charInBuffer( 0 )
-		, charOutBuffer( 0 )
-		, charInBufferSize( 0 )
-		, charOutBufferSize( 0 )
-{
-
-}
-
 /*
  * Current behaviour:
  *
@@ -42,9 +32,9 @@ BitStream::BitStream( std::stringstream& oss )
  *   step1: 0baaa1 2345 -> Flush
  *   step2: 0b6780 0000
  */
-void BitStream::WriteNBits( const unsigned char *buffer, size_t numBits )
-{
 #if 0
+void OutBitStream::WriteNBits( const unsigned char *buffer, size_t numBits )
+{
 	// TODO: Fix this function
 
 	if ( charOutBufferSize == 0 ) {
@@ -98,7 +88,7 @@ void BitStream::WriteNBits( const unsigned char *buffer, size_t numBits )
 			WriteBit( bit );
 		}
 	}
-#else
+
 	while ( numBits >= 8 ) {
 		const unsigned char c = *buffer;
 		for ( size_t i = 0; i < 8; i++ ) {
@@ -109,85 +99,17 @@ void BitStream::WriteNBits( const unsigned char *buffer, size_t numBits )
 		numBits -= 8;
 	}
 
-	const unsigned char c = *buffer;
-	for ( size_t i = 0; i < numBits; i++ ) {
-		bool bit = ( c >> ( 7 - i ) ) & 0x1;
-		WriteBit( bit );
-	}
-#endif
-}
-
-void BitStream::WriteBit( bool bit )
-{
-	size_t shift = 8 - charOutBufferSize - 1;
-	charOutBuffer >>= shift;
-	charOutBuffer |= bit;
-	charOutBuffer <<= shift;
-	charOutBufferSize++;
-	if ( charOutBufferSize == 8 ) {
-		Flush();
-		charOutBuffer = '\0'; // Clean charOutBuffer
-	}
-}
-
-bool BitStream::ReadBit( bool& bit )
-{
-	if ( charInBufferSize == 0 ) {
-		int c = oss.get();
-		if ( c == EOF ) {
-			return false;
+	if ( numBits > 0 ) {
+		const unsigned char c = *buffer;
+		for ( size_t i = 0; i < numBits; i++ ) {
+			bool bit = ( c >> ( 7 - i ) ) & 0x1;
+			WriteBit( bit );
 		}
-		charInBuffer = c;
-		charInBufferSize = 8;
 	}
 
-	bit = charInBuffer & 0x80;
-	charInBuffer <<= 1;
-	charInBufferSize--;
-	return true;
 }
 
-size_t BitStream::ReadNBits( unsigned char* buffer, size_t numBits )
-{
-	size_t bitsRead = 0;
-	bool bit;
-
-	// TODO: Optimize this code
-	while ( numBits >= 8 ) {
-		*buffer = '\0';
-		for ( size_t i = 0; i < 8; i++ ) {
-			if ( ! this->ReadBit( bit ) ) {
-				return bitsRead;
-			}
-			*buffer |= ( static_cast<unsigned char>( bit ) << ( 7 - i ) );
-			bitsRead++;
-			numBits--;
-		}
-		buffer++;
-	}
-
-	*buffer = '\0';
-	for ( size_t i = 0; i < numBits; i++ ) {
-		if ( ! this->ReadBit( bit ) ) {
-			return bitsRead;
-		}
-		*buffer |= ( bit << ( 7 - i ) );
-		bitsRead++;
-	}
-
-	return bitsRead;
-}
-
-void BitStream::Flush()
-{
-	if ( charOutBufferSize > 0 ) {
-		oss << charOutBuffer;
-		charOutBufferSize = 0;
-	}
-}
-
-
-void NaiveBitStream::WriteNBits( const unsigned char *buffer, size_t numBits )
+void NaiveOutBitStream::WriteNBits( const unsigned char *buffer, size_t numBits )
 {
 	while ( numBits >= 8 ) {
 		const unsigned char c = *buffer;
@@ -199,21 +121,23 @@ void NaiveBitStream::WriteNBits( const unsigned char *buffer, size_t numBits )
 		numBits -= 8;
 	}
 
-	const unsigned char c = *buffer;
-	for ( size_t i = 0; i < numBits; i++ ) {
-		bool bit = ( c >> ( 7 - i ) ) & 0x1;
-		WriteBit( bit );
+	if ( numBits > 0 ) {
+		const unsigned char c = *buffer;
+		for ( size_t i = 0; i < numBits; i++ ) {
+			bool bit = ( c >> ( 7 - i ) ) & 0x1;
+			WriteBit( bit );
+		}
 	}
 }
 
-void NaiveBitStream::WriteBit( bool bit )
+void NaiveOutBitStream::WriteBit( bool bit )
 {
-	this->oss << ( bit ? "1" : "0" );
+	*this->oss << ( bit ? "1" : "0" );
 }
 
-bool NaiveBitStream::ReadBit( bool& bit )
+bool NaiveInBitStream::ReadBit( bool& bit )
 {
-	int c = oss.get();
+	int c = iss->get();
 	if ( c == EOF ) {
 		return false;
 	}
@@ -226,7 +150,7 @@ bool NaiveBitStream::ReadBit( bool& bit )
 	return true;
 }
 
-size_t NaiveBitStream::ReadNBits( unsigned char* buffer, size_t numBits )
+size_t NaiveInBitStream::ReadNBits( unsigned char* buffer, size_t numBits )
 {
 	size_t bitsRead = 0;
 	bool bit;
@@ -257,9 +181,10 @@ size_t NaiveBitStream::ReadNBits( unsigned char* buffer, size_t numBits )
 	return bitsRead;
 }
 
-void NaiveBitStream::Flush()
+void NaiveOutBitStream::Flush()
 {
 
 }
 
+#endif
 
